@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NULLRUN</title>
+<style>
+:root{
+  --bg:#0b0d11; --panel:#12151b; --panel2:#0f1217; --line:rgba(255,255,255,.08);
+  --ink:#eceef1; --dim:#9aa1ab; --faint:#5f6873;
+  --you:#4fc4c4; --world:#d9a13b; --harm:#cf6242;
+  --s:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --m:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#08090b;color:var(--ink);font-family:var(--s);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body{display:flex;justify-content:center;min-height:100dvh;background:radial-gradient(120% 60% at 50% 0%,#141821 0%,#08090b 70%)}
+#app{width:100%;max-width:430px;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg);border-left:1px solid var(--line);border-right:1px solid var(--line)}
+button{font-family:var(--s);cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--you);outline-offset:2px}
+.bar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 18px 11px;border-bottom:1px solid var(--line)}
+.bar .id{font:500 11px/1 var(--m);letter-spacing:.14em;color:var(--dim)}
+.bar .rt{font:400 11px/1 var(--m);letter-spacing:.08em;color:var(--faint);text-align:right}
+.screen{flex:1;display:flex;flex-direction:column;gap:13px;padding:20px 18px 24px;min-height:0}
+.kicker{font:400 11px/1 var(--m);letter-spacing:.16em;color:var(--faint)}
+h1{margin:0;font:700 27px/1.08 var(--s);letter-spacing:-.02em}
+.spacer{flex:1;min-height:8px}
+.panel{padding:14px 15px;border-radius:16px;background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;gap:9px}
+.panel.flat{background:var(--panel2);border-color:rgba(255,255,255,.06)}
+.rowb{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mono{font:400 11.5px/1.5 var(--m);color:var(--dim)}
+.note{font:400 12px/1.55 var(--s);color:var(--dim)}
+.dash{padding:12px 14px;border-radius:14px;border:1px dashed rgba(255,255,255,.14);font:400 11.5px/1.5 var(--s);color:var(--dim)}
+.cta{width:100%;min-height:54px;border:none;border-radius:14px;background:var(--you);color:#06110f;font:700 15px/1 var(--s);letter-spacing:.01em}
+.cta.ghost{background:transparent;border:1px solid rgba(255,255,255,.16);color:var(--ink);font-weight:500}
+.cta.small{min-height:48px;font-size:14px}
+.krow{display:flex;gap:10px}
+.chip{font:500 10.5px/1 var(--m);letter-spacing:.08em;border:1px solid rgba(255,255,255,.14);border-radius:99px;padding:7px 10px;color:var(--dim);white-space:nowrap}
+.chip.you{color:var(--you);border-color:rgba(79,196,196,.4)}
+.chip.harm{color:var(--harm);border-color:rgba(207,98,66,.45);background:rgba(207,98,66,.1)}
+.chip.world{color:var(--world);border-color:rgba(217,161,59,.4)}
+.meter{height:6px;border-radius:99px;background:rgba(255,255,255,.09);overflow:hidden}
+.meter > i{display:block;height:100%;border-radius:99px}
+.trace i{background:var(--world)}
+.trace.crit i{background:var(--harm);animation:tick 1.1s steps(2,end) infinite}
+@keyframes tick{0%,100%{opacity:1}50%{opacity:.45}}
+.node{width:100%;text-align:left;padding:14px 15px;border-radius:16px;background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;gap:7px;min-height:88px;color:var(--ink)}
+.node .nm{font:700 17px/1.1 var(--s)}
+.art{border-radius:14px;border:1px solid var(--line);background:repeating-linear-gradient(135deg,#141821 0 8px,#10141b 8px 16px);display:flex;align-items:center;justify-content:center;text-align:center;font:400 10px/1.5 var(--m);color:#6b7480}
+.roster{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.card{width:calc(33.333% - 6px);min-width:96px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:#151920;padding:0;overflow:hidden;text-align:left;display:flex;flex-direction:column;color:var(--ink)}
+.card .band{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 7px;background:var(--you)}
+.card .band span{font:500 8.5px/1.15 var(--m);letter-spacing:.06em;color:#06110f}
+.card .band b{font:700 10px/1 var(--m);color:#06110f}
+.card .win{margin:6px 6px 4px;height:38px;border-radius:7px;background:repeating-linear-gradient(135deg,#1c212a 0 5px,#171b23 5px 10px);display:flex;align-items:center;justify-content:center;font:400 7.5px var(--m);color:#69727e}
+.card .nm{padding:0 7px;font:500 11.5px/1.15 var(--s)}
+.card .fx{padding:2px 7px 8px;font:400 9.5px/1.35 var(--s);color:var(--dim);min-height:26px}
+.card:disabled{cursor:default}
+.card:disabled .win{opacity:.4}
+.card.spent{background:var(--panel2);border-color:rgba(255,255,255,.07)}
+.card.spent .band{background:#7c858f}
+.card.spent .nm{color:var(--dim)}
+.card.short{border-style:dashed;border-color:rgba(255,255,255,.2)}
+.card.short .band{background:#2e6f6f}
+.card.short .band span,.card.short .band b{color:#eaf5f5}
+.list{display:flex;flex-direction:column;gap:8px}
+.lrow{display:flex;gap:11px;align-items:center;padding:11px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--line);min-height:60px;text-align:left;color:var(--ink);width:100%}
+.lrow .rail{width:4px;align-self:stretch;border-radius:99px;background:var(--you);flex:none}
+.lrow .col{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.lrow .nm{font:500 14.5px/1.15 var(--s)}
+.lrow .rl{font:400 9.5px/1 var(--m);letter-spacing:.1em;color:var(--you)}
+.lrow .tx{font:400 11.5px/1.45 var(--s);color:var(--dim)}
+.lrow .ct{font:500 12.5px/1 var(--m);color:var(--faint);flex:none}
+.seed{display:flex;gap:8px;align-items:center}
+.seed input{flex:1;min-width:0;min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:#0d1015;color:var(--ink);font:400 13px var(--m)}
+.keys{font:400 10px/1.5 var(--m);color:var(--faint);letter-spacing:.06em}
+.feed{padding:11px 13px;border-radius:12px;background:var(--panel2);border:1px solid rgba(255,255,255,.06);font:400 12px/1.45 var(--s);color:var(--dim);min-height:44px;display:flex;align-items:center}
+.big{font:700 15px/1 var(--m)}
+.hr{height:1px;background:rgba(255,255,255,.07)}
+.fade{animation:rise .28s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:379px){.card{width:calc(50% - 4px)}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+"use strict";
+
+/* ── §T tunables ─────────────────────────────────────────── */
+var CONFIG = {
+  firewall: 24, ram: 3, rosterCap: 6,
+  traceMax: 100, tracePerTurn: 6, alarmCarry: 40,
+  layers: 8, offers: 3,
+  alarmIntentScale: 3,
+  nodeLayerScale: 0.14, nodeAlarmScale: 0.10,
+  payoutFlat: 60, payoutScaled: 40, payoutAlarm: 60, corePayout: 600,
+  unlock: { 1: 400, 2: 1200, 3: 2400 }
+};
+
+/* ── §C content ──────────────────────────────────────────── */
+var CONTACTS = {
+  mole:    { name:'MOLE',        role:'RIGGER',     cost:1, tier:0, fx:'Drone strike. 8 damage, ignores armour.', dmg:8, pierce:true },
+  velvet:  { name:'VELVET',      role:'FACE',       cost:0, tier:0, fx:'Talks you a window. +7 firewall.', fw:7 },
+  hatchet: { name:'HATCHET',     role:'SAMURAI',    cost:2, tier:0, fx:'Loud and final. 16 damage.', dmg:16 },
+  bishop:  { name:'BISHOP',      role:'DECKER',     cost:1, tier:0, fx:'5 damage, strips 2 armour.', dmg:5, strip:2 },
+  sparrow: { name:'SPARROW',     role:'SCOUT',      cost:1, tier:0, fx:'+4 firewall, refunds 1 RAM.', fw:4, refund:1 },
+  grief:   { name:'GRIEF',       role:'MEDIC',      cost:1, tier:0, fx:'Patches you up. +11 firewall.', fw:11 },
+  tally:   { name:'TALLY',       role:'FIXER',      cost:0, tier:0, fx:'Buys silence. Trace -15.', trace:-15 },
+  ash:     { name:'ASH',         role:'COURIER',    cost:1, tier:0, fx:'6 damage, trace -5.', dmg:6, trace:-5 },
+  prior:   { name:'PRIOR',       role:'MUSCLE',     cost:2, tier:1, fx:'12 damage, +4 firewall.', dmg:12, fw:4 },
+  ninth:   { name:'NINE-TENTHS', role:'FORGER',     cost:1, tier:1, fx:'Strips 3 armour, trace -10.', strip:3, trace:-10 },
+  cardinal:{ name:'CARDINAL',    role:'RIGGER',     cost:2, tier:2, fx:'10 damage, ignores armour.', dmg:10, pierce:true },
+  wren:    { name:'WREN',        role:'INFILTRATOR',cost:0, tier:2, fx:'4 damage, refunds 1 RAM.', dmg:4, refund:1 },
+  saint:   { name:'SAINT',       role:'EX-CORPSEC', cost:3, tier:3, fx:'22 damage. Nothing subtle.', dmg:22 },
+  dolorosa:{ name:'DOLOROSA',    role:'UNKNOWN',    cost:2, tier:3, fx:'18 damage, trace +10.', dmg:18, trace:10 }
+};
+var POOL = ['grief','tally','ash','prior','ninth','cardinal','wren','saint','dolorosa'];
+
+var CONSTRUCTS = {
+  wall:   { name:'ICE WALL',       tag:'COMBAT', integrity:52, armour:3, intents:[{ l:'STRIKE', d:12 }] },
+  sweep:  { name:'CORPSEC SWEEP',  tag:'HARD',   integrity:74, armour:1, intents:[{ l:'BURST', d:9 },{ l:'SUPPRESS', d:15 }] },
+  cold:   { name:'COLD STORAGE',   tag:'QUIET',  integrity:34, armour:0, intents:[{ l:'HOLD', d:0 },{ l:'PURGE', d:11 }] },
+  hunter: { name:'HUNTER',         tag:'HARD',   integrity:60, armour:2, intents:[{ l:'HUNT', d:14 }] },
+  archon: { name:'ARCHON',         tag:'CORE',   integrity:96, armour:3, intents:[{ l:'SHOCKWAVE', d:16 },{ l:'RESTORE', d:0, restore:2 },{ l:'SHOCKWAVE', d:20 }] }
+};
+var PERSONA = { name:'KESTREL', role:'DECKER', firewall:CONFIG.firewall, ram:CONFIG.ram, passive:'Runs quiet. Trace rises 1 slower each turn.', traceMod:-1 };
+var BASE_ROSTER = ['velvet','bishop','sparrow'];
+var HARDWARE = [
+  { name:'HAMMER-4', kind:'CYBERDECK', fx:'+2 attack contacts', adds:['mole','hatchet'], ram:0, slots:0, fitted:true },
+  { name:'SPLIT REFLEX', kind:'WETWARE', fx:'+1 RAM', adds:[], ram:1, slots:0, fitted:true },
+  { name:'COLD WALLET', kind:'STORAGE', fx:'+1 roster slot', adds:[], ram:0, slots:1, fitted:false }
+];
+function fitted(){ return HARDWARE.filter(function(h){ return h.fitted; }); }
+function buildRoster(){
+  var ids = BASE_ROSTER.slice();
+  fitted().forEach(function(h){ h.adds.forEach(function(id){ if (ids.indexOf(id) < 0) ids.push(id); }); });
+  return ids;
+}
+function hwSum(key){ return fitted().reduce(function(n, h){ return n + (h[key] || 0); }, 0); }
+
+/* ── NFR-2 determinism: one run-scoped generator ─────────── */
+function hash(str){ var h = 2166136261 >>> 0; for (var i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h >>> 0; }
+function makeRng(seedStr){
+  var a = hash(String(seedStr));
+  return function(){ a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function pick(rng, arr){ return arr[Math.floor(rng() * arr.length)]; }
+function randomSeed(){ var s = ''; var abc = 'ACDEFGHJKLMNPQRTUVWXY3479'; for (var i=0;i<6;i++) s += abc[Math.floor(Math.random()*abc.length)]; return s; }
+
+/* ── S8 persistence (local only, no network) ─────────────── */
+var STORE = 'nullrun.collection';
+function loadCollection(){
+  try { var raw = localStorage.getItem(STORE); if (!raw) return { credits: 0 }; var o = JSON.parse(raw); return { credits: (o && typeof o.credits === 'number') ? o.credits : 0 }; }
+  catch (e) { return { credits: 0 }; }
+}
+function saveCollection(c){ try { localStorage.setItem(STORE, JSON.stringify({ credits: c.credits })); } catch (e) {} }
+function unlockedTier(credits){ var t = 0; if (credits >= CONFIG.unlock[1]) t = 1; if (credits >= CONFIG.unlock[2]) t = 2; if (credits >= CONFIG.unlock[3]) t = 3; return t; }
+
+/* ── state ───────────────────────────────────────────────── */
+var COL = loadCollection();
+var S = null;
+function newRun(seedStr){
+  var rng = makeRng(seedStr);
+  S = {
+    screen:'loadout', seed:String(seedStr).toUpperCase(), rng: rng,
+    layer:1, alarm:0, trace:0, credits:0, turns:0, runTurns:0,
+    fw: PERSONA.firewall, ram: PERSONA.ram + hwSum('ram'), ramMax: PERSONA.ram + hwSum('ram'),
+    rosterCap: CONFIG.rosterCap + hwSum('slots'),
+    traceRate: Math.max(1, CONFIG.tracePerTurn + (PERSONA.traceMod || 0)),
+    roster: buildRoster().map(function(id){ return { id:id, burned:false }; }),
+    burned: [], offers: [], node: null, con: null,
+    feed:'', log:[], offer:null, releasing:false, won:false, ended:false
+  };
+}
+newRun(randomSeed());
+
+/* ── S1 route ────────────────────────────────────────────── */
+function genOffers(){
+  if (S.layer >= CONFIG.layers) { S.offers = []; return; }
+  var bag = ['wall','sweep','cold'];
+  if (S.alarm > 0) bag.push('hunter');
+  for (var j=bag.length-1;j>0;j--){ var k = Math.floor(S.rng() * (j + 1)); var tmp = bag[j]; bag[j] = bag[k]; bag[k] = tmp; }
+  var out = [];
+  for (var i=0;i<CONFIG.offers;i++){
+    var key = bag[i % bag.length];
+    var scale = 1 + (S.layer - 1) * CONFIG.nodeLayerScale + S.alarm * CONFIG.nodeAlarmScale;
+    var alarmCost = (i === CONFIG.offers - 1) ? 0 : (key === 'sweep' || key === 'hunter' ? 1 : 0); /* I2 */
+    out.push({
+      key: key,
+      integrity: Math.round(CONSTRUCTS[key].integrity * scale),
+      armour: CONSTRUCTS[key].armour,
+      credits: CONFIG.payoutFlat + Math.round(CONFIG.payoutScaled * scale) + alarmCost * CONFIG.payoutAlarm,
+      alarmCost: alarmCost
+    });
+  }
+  S.offers = out;
+}
+
+/* ── S2/S3 encounter ─────────────────────────────────────── */
+/* FR-3: an intent's value is fixed the moment it is shown, so a later
+   alarm increment can never raise what the player was told would land. */
+function intentValue(it){ return it.d > 0 ? it.d + S.alarm * CONFIG.alarmIntentScale : 0; }
+function showIntent(it){ S.con.pending = it; S.con.pendingVal = intentValue(it); }
+function enterNode(node){
+  var c = CONSTRUCTS[node.key];
+  S.node = node;
+  S.con = { key:node.key, name:c.name, integrity:node.integrity, max:node.integrity, armour:node.armour, idx:0 };
+  S.trace = 0; S.ram = S.ramMax; S.turns = 0;
+  showIntent(c.intents[0]);
+  S.feed = 'You are in. Something already knows.';
+  S.screen = 'encounter';
+  render();
+}
+function ready(id){ for (var i=0;i<S.roster.length;i++) if (S.roster[i].id === id) return !S.roster[i].burned; return false; }
+function call(id){
+  var slot = null;
+  for (var i=0;i<S.roster.length;i++) if (S.roster[i].id === id) slot = S.roster[i];
+  if (!slot || slot.burned) return;
+  var c = CONTACTS[id];
+  if (c.cost > S.ram) return; /* I6: no cost, no state change */
+  var msg = [];
+  if (c.dmg){
+    var dealt = c.pierce ? c.dmg : Math.max(1, c.dmg - S.con.armour); /* FR-6 */
+    S.con.integrity -= dealt;
+    msg.push(c.name + ' hits for ' + dealt + '.');
+  }
+  if (c.strip){ S.con.armour = Math.max(0, S.con.armour - c.strip); msg.push('Armour down to ' + S.con.armour + '.'); }
+  if (c.fw){ S.fw += c.fw; msg.push(c.name + ' buys you ' + c.fw + ' firewall.'); }
+  if (c.trace){ S.trace = Math.max(0, Math.min(CONFIG.traceMax, S.trace + c.trace)); msg.push('Trace ' + (c.trace > 0 ? '+' : '') + c.trace + '.'); }
+  slot.burned = true;
+  S.burned.push(id);
+  S.ram = S.ram - c.cost + (c.refund || 0);
+  S.feed = msg.join(' ');
+  if (S.con.integrity <= 0){ S.con.integrity = 0; clearNode(); }
+  render();
+}
+function endTurn(){
+  S.turns++; S.runTurns++;
+  S.trace += S.traceRate;
+  var notes = [];
+  if (S.trace >= CONFIG.traceMax){
+    S.alarm++;
+    S.trace = CONFIG.alarmCarry;
+    notes.push('TRACE COMPLETE — alarm ' + S.alarm + '. Intents scale.');
+  }
+  var it = S.con.pending;
+  var v = S.con.pendingVal; /* FR-3, I4: the value shown all turn, not a fresh one */
+  if (it.restore){ S.con.armour += it.restore; notes.push(S.con.name + ' restores ' + it.restore + ' armour.'); }
+  if (v > 0){ S.fw -= v; notes.push(S.con.name + ' resolves ' + it.l + ' for ' + v + '.'); }
+  else if (!it.restore) notes.push(S.con.name + ' holds.');
+  if (S.fw <= 0){ S.fw = 0; endRun(false); return; }
+  var intents = CONSTRUCTS[S.con.key].intents;
+  S.con.idx = (S.con.idx + 1) % intents.length;
+  showIntent(intents[S.con.idx]);
+  S.ram = S.ramMax;
+  S.feed = notes.join(' ');
+  render();
+}
+function clearNode(){
+  S.credits += S.node.credits;
+  S.alarm += S.node.alarmCost;
+  S.log.unshift('Layer ' + S.layer + ' — ' + S.con.name + ' down. ' + S.burned.length + ' burned.');
+  S.log = S.log.slice(0, 3);
+  if (S.layer >= CONFIG.layers){ endRun(true); return; }
+  S.offer = nextOffer();
+  S.releasing = false;
+  S.screen = 'payout';
+}
+function nextOffer(){
+  var tier = unlockedTier(COL.credits);
+  var have = {}; S.roster.forEach(function(r){ have[r.id] = true; });
+  var avail = POOL.filter(function(id){ return !have[id] && CONTACTS[id].tier <= tier; });
+  if (!avail.length) return null;
+  return pick(S.rng, avail);
+}
+function acceptOffer(){
+  if (!S.offer) return advanceLayer();
+  if (S.roster.length >= S.rosterCap){ S.releasing = true; render(); return; } /* FR-12 */
+  S.roster.push({ id: S.offer, burned:false });
+  S.offer = null;
+  advanceLayer();
+}
+function release(id){
+  S.roster = S.roster.filter(function(r){ return r.id !== id; });
+  S.roster.push({ id: S.offer, burned:false });
+  S.offer = null; S.releasing = false;
+  advanceLayer();
+}
+function advanceLayer(){
+  S.layer++;
+  if (S.layer >= CONFIG.layers){
+    S.offers = [];
+    enterNode({ key:'archon', integrity:CONSTRUCTS.archon.integrity, armour:CONSTRUCTS.archon.armour, credits:CONFIG.corePayout, alarmCost:0 });
+    return;
+  }
+  genOffers();
+  S.screen = 'offers';
+  render();
+}
+function endRun(won){
+  S.won = won; S.ended = true; S.screen = 'end';
+  COL.credits += S.credits; saveCollection(COL);
+  render();
+}
+function bail(){ endRun(false); }
+
+/* ── S7 presentation ─────────────────────────────────────── */
+var app = document.getElementById('app');
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function bar(){
+  var right = S.screen === 'encounter'
+    ? 'TURN ' + (S.turns + 1) + ' / ALARM ' + S.alarm
+    : (S.screen === 'loadout' ? 'OFFLINE' : 'LAYER ' + Math.min(S.layer, CONFIG.layers) + ' OF ' + CONFIG.layers);
+  return '<div class="bar"><span class="id">ZAIBATSU&nbsp;CONSOLE</span><span class="rt">SEED ' + esc(S.seed) + ' · ' + right + '</span></div>';
+}
+function cardHtml(slot){
+  var c = CONTACTS[slot.id];
+  var short = !slot.burned && c.cost > S.ram;
+  var cls = 'card' + (slot.burned ? ' spent' : (short ? ' short' : ''));
+  return '<button class="' + cls + '" data-call="' + slot.id + '"' + (slot.burned || short ? ' disabled' : '') + '>' +
+    '<span class="band"><span>' + esc(c.role) + '</span><b>' + c.cost + '</b></span>' +
+    '<span class="win">' + (slot.burned ? 'BURNED' : 'portrait') + '</span>' +
+    '<span class="nm">' + esc(c.name) + '</span>' +
+    '<span class="fx">' + (slot.burned ? 'Burned. Unavailable for the rest of the run.' : esc(c.fx)) + '</span>' +
+    '</button>';
+}
+function loadoutScreen(){
+  var rows = S.roster.map(function(r){
+    var c = CONTACTS[r.id];
+    return '<div class="lrow"><i class="rail"></i><span class="col"><span class="nm">' + esc(c.name) +
+      ' <span class="rl">' + esc(c.role) + '</span></span><span class="tx">' + esc(c.fx) + '</span></span>' +
+      '<span class="ct">' + c.cost + ' RAM</span></div>';
+  }).join('');
+  var hw = HARDWARE.map(function(h, i){
+    return '<button class="rowb" data-hw="' + i + '" style="width:100%;background:transparent;border:none;padding:7px 0;min-height:44px;color:var(--ink)">' +
+      '<span style="font:500 13.5px var(--s);text-align:left">' + esc(h.kind) + ': ' + esc(h.name) + '</span>' +
+      '<span class="mono" style="font-size:11px;color:' + (h.fitted ? 'var(--you)' : 'var(--faint)') + '">' + (h.fitted ? esc(h.fx) : 'not fitted') + '</span></button>';
+  }).join('<div class="hr"></div>');
+  return '<div class="screen fade">' +
+    '<div><div class="kicker" style="margin-bottom:8px">PRE-RUN / TEAM</div><h1>Who are you<br>taking in?</h1></div>' +
+    '<div class="panel"><div class="rowb"><span style="font:700 17px var(--s)">' + PERSONA.name + '</span>' +
+      '<span class="mono" style="color:var(--you)">' + PERSONA.role + '</span></div>' +
+      '<div class="note">' + PERSONA.passive + '</div>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip you">FIREWALL ' + S.fw + '</span><span class="chip you">RAM ' + S.ramMax + '</span><span class="chip">ROSTER ' + S.roster.length + '/' + S.rosterCap + '</span></div></div>' +
+    '<div class="panel flat"><span class="kicker">HARDWARE — TAP TO FIT</span>' + hw + '</div>' +
+    '<div class="kicker">ON RETAINER</div><div class="list">' + rows + '</div>' +
+    '<div class="dash">Call someone in and they are burned for the rest of the run. Nobody answers twice.</div>' +
+    '<div class="panel flat"><span class="kicker">SEED</span><div class="seed"><input id="seedin" value="' + esc(S.seed) + '" spellcheck="false" aria-label="Run seed"><button class="cta ghost small" style="width:auto;padding:0 14px" data-act="reseed">SET</button></div>' +
+      '<span class="mono" style="font-size:11px">Banked across runs: ' + COL.credits + '¤ · tier ' + unlockedTier(COL.credits) + ' unlocked</span></div>' +
+    '<div class="spacer"></div>' +
+    '<button class="cta" data-act="start">JACK IN</button>' +
+    '<span class="keys">ENTER jack in · digits select · ESC bail</span></div>';
+}
+function offersScreen(){
+  var toneClass = { COMBAT:'world', HARD:'harm', QUIET:'you', CORE:'harm' };
+  var nodes = S.offers.map(function(o, i){
+    var c = CONSTRUCTS[o.key];
+    return '<button class="node" data-node="' + i + '">' +
+      '<span class="rowb" style="width:100%"><span class="nm">' + esc(c.name) + '</span>' +
+      '<span class="chip ' + toneClass[c.tag] + '">' + esc(c.tag) + '</span></span>' +
+      '<span class="note">Integrity ' + o.integrity + ' · armour ' + o.armour + (o.alarmCost ? ' · raises alarm' : ' · no alarm') + '</span>' +
+      '<span class="mono" style="font-size:11px">PAYOUT ' + o.credits + '¤ · one contact · press ' + (i + 1) + '</span></button>';
+  }).join('');
+  var log = S.log.length ? S.log.map(function(l){ return '<span class="mono">' + esc(l) + '</span>'; }).join('') : '<span class="mono">No layers cleared yet.</span>';
+  return '<div class="screen fade">' +
+    '<div><div class="kicker" style="margin-bottom:8px">LAYER ' + S.layer + ' OF ' + CONFIG.layers + ' · ALARM ' + S.alarm + ' · ' + S.credits + '¤</div><h1>Choose your<br>way down.</h1></div>' +
+    nodes + '<div class="spacer"></div>' +
+    '<div class="panel flat"><span class="kicker">RUN LOG</span>' + log + '</div>' +
+    '<span class="keys">1–' + S.offers.length + ' choose a node</span></div>';
+}
+function encounterScreen(){
+  var con = S.con, pct = Math.max(0, con.integrity / con.max * 100);
+  var it = con.pending, v = con.pendingVal;
+  var tracePct = Math.min(100, S.trace / CONFIG.traceMax * 100);
+  var crit = S.trace >= CONFIG.traceMax * 0.75;
+  var cards = S.roster.map(function(r){ return cardHtml(r); }).join('');
+  return '<div class="screen fade" style="gap:11px">' +
+    '<div class="rowb"><span style="font:700 19px var(--s)">' + esc(con.name) + '</span>' +
+      '<span class="mono" style="font-size:12px">' + con.integrity + ' / ' + con.max + '</span></div>' +
+    '<div class="meter"><i style="width:' + pct + '%;background:var(--world)"></i></div>' +
+    '<div class="art" style="flex:1;min-height:104px">construct feed<br>[ art placeholder ]</div>' +
+    '<div style="display:flex;gap:7px;flex-wrap:wrap">' +
+      '<span class="chip harm">NEXT: ' + esc(it.l) + (v > 0 ? ' ' + v : '') + '</span>' +
+      '<span class="chip">ARMOUR ' + con.armour + '</span>' +
+      '<span class="chip you">FIREWALL ' + S.fw + '</span>' +
+      '<span class="chip you">RAM ' + S.ram + '/' + S.ramMax + '</span></div>' +
+    '<div class="feed">' + esc(S.feed || 'Waiting.') + '</div>' +
+    '<div><div class="rowb" style="margin-bottom:5px"><span class="kicker">TRACE ' + Math.round(S.trace) + ' / ' + CONFIG.traceMax + '</span>' +
+      '<span class="mono" style="font-size:10.5px">+' + S.traceRate + ' PER TURN</span></div>' +
+      '<div class="meter trace' + (crit ? ' crit' : '') + '"><i style="width:' + tracePct + '%"></i></div></div>' +
+    '<div class="roster">' + cards + '</div>' +
+    '<div class="krow"><button class="cta ghost" data-act="end">END TURN</button>' +
+      '<button class="cta ghost" style="width:auto;padding:0 18px;color:var(--faint)" data-act="bail">BAIL</button></div>' +
+    '<span class="keys">digits call a contact · ENTER end turn · ESC bail</span></div>';
+}
+function payoutScreen(){
+  if (S.releasing){
+    var rows = S.roster.map(function(r){
+      var c = CONTACTS[r.id];
+      return '<button class="lrow" data-release="' + r.id + '"><i class="rail"></i><span class="col">' +
+        '<span class="nm">' + esc(c.name) + ' <span class="rl">' + esc(c.role) + '</span></span>' +
+        '<span class="tx">' + (r.burned ? 'Burned this run.' : esc(c.fx)) + '</span></span>' +
+        '<span class="ct">RELEASE</span></button>';
+    }).join('');
+    return '<div class="screen fade"><div><div class="kicker" style="margin-bottom:8px">ROSTER FULL — ' + S.rosterCap + ' SLOTS</div>' +
+      '<h1>Someone has to go.</h1></div><div class="list">' + rows + '</div><div class="spacer"></div>' +
+      '<button class="cta ghost" data-act="decline">KEEP THE ROSTER AS IT IS</button></div>';
+  }
+  var burned = S.burned.length
+    ? S.burned.map(function(id){ return '<span class="mono">' + esc(CONTACTS[id].name) + ' — unavailable until the run ends</span>'; }).join('')
+    : '<span class="mono">Nobody. You did it alone.</span>';
+  var offer = S.offer ? CONTACTS[S.offer] : null;
+  return '<div class="screen fade">' +
+    '<div><div class="kicker" style="margin-bottom:9px;color:var(--you)">LAYER ' + S.layer + ' CLEAR</div><h1>Node is yours.</h1></div>' +
+    '<div class="panel"><span class="kicker">PAYOUT</span>' +
+      '<div class="rowb"><span style="font:500 15px var(--s)">Credits</span><span class="big" style="color:var(--you)">+' + S.node.credits + '¤</span></div>' +
+      '<div class="hr"></div>' +
+      '<div class="rowb"><span style="font:500 15px var(--s)">Banked</span><span class="big" style="color:var(--dim)">' + S.credits + '¤</span></div></div>' +
+    (offer
+      ? '<div class="panel"><span class="kicker">CONTACT AVAILABLE</span>' +
+        '<div class="rowb"><span style="font:700 17px var(--s)">' + esc(offer.name) + '</span><span class="mono" style="color:var(--you)">' + esc(offer.role) + '</span></div>' +
+        '<div class="note">' + esc(offer.fx) + '</div><span class="mono" style="font-size:11px">' + offer.cost + ' RAM</span></div>'
+      : '<div class="dash">No new contact available at your unlock tier.</div>') +
+    '<div class="panel flat"><span class="kicker">BURNED THIS RUN</span>' + burned + '</div>' +
+    '<div class="spacer"></div>' +
+    (offer ? '<button class="cta" data-act="accept">TAKE ' + esc(offer.name) + '</button>' : '') +
+    '<button class="cta ghost small" data-act="decline">' + (offer ? 'DECLINE AND DESCEND' : 'DESCEND') + '</button>' +
+    '<span class="keys">1 take · 2 decline</span></div>';
+}
+function endScreen(){
+  var stats = [
+    ['Layers cleared', String(Math.max(0, S.layer - (S.won ? 0 : 1)))],
+    ['Credits banked', S.credits + '¤'],
+    ['Contacts burned', String(S.burned.length)],
+    ['Turns taken', String(S.runTurns)],
+    ['Seed', S.seed]
+  ].map(function(p, i){
+    return (i ? '<div class="hr"></div>' : '') + '<div class="rowb"><span style="font:500 14.5px var(--s)">' + p[0] + '</span><span class="mono" style="font-size:13px;color:var(--ink)">' + esc(p[1]) + '</span></div>';
+  }).join('');
+  return '<div class="screen fade">' +
+    '<div><div class="kicker" style="margin-bottom:9px;color:' + (S.won ? 'var(--you)' : 'var(--harm)') + '">' + (S.won ? 'CORE DESTROYED' : 'RUN ENDED') + '</div>' +
+    '<h1>' + (S.won ? 'The arcology goes quiet.' : 'You got out with less than you brought.') + '</h1></div>' +
+    '<div class="panel">' + stats + '</div>' +
+    '<div class="panel flat"><span class="kicker">COLLECTION</span><span class="mono">' + COL.credits + '¤ banked across runs · tier ' + unlockedTier(COL.credits) + ' unlocked</span></div>' +
+    '<div class="spacer"></div>' +
+    '<button class="cta" data-act="again">NEW RUN</button>' +
+    '<button class="cta ghost small" data-act="rerun">RUN THIS SEED AGAIN</button></div>';
+}
+function render(){
+  var body = S.screen === 'loadout' ? loadoutScreen()
+    : S.screen === 'offers' ? offersScreen()
+    : S.screen === 'encounter' ? encounterScreen()
+    : S.screen === 'payout' ? payoutScreen()
+    : endScreen();
+  app.innerHTML = bar() + body;
+}
+
+/* ── FR-17 input: touch and keyboard mirror ──────────────── */
+app.addEventListener('click', function(e){
+  var t = e.target.closest('[data-act],[data-node],[data-call],[data-release],[data-hw]');
+  if (!t) return;
+  var d = t.dataset;
+  if (d.call !== undefined) return call(d.call);
+  if (d.release !== undefined) return release(d.release);
+  if (d.node !== undefined) { enterNode(S.offers[+d.node]); return render(); }
+  if (d.hw !== undefined) { var h = HARDWARE[+d.hw]; h.fitted = !h.fitted; newRun(S.seed); return render(); }
+  var a = d.act;
+  if (a === 'start'){ genOffers(); S.screen = 'offers'; return render(); }
+  if (a === 'reseed'){ var v = (document.getElementById('seedin').value || '').trim(); newRun(v || randomSeed()); return render(); }
+  if (a === 'end') return endTurn();
+  if (a === 'bail') return bail();
+  if (a === 'accept') return acceptOffer();
+  if (a === 'decline'){ S.offer = null; S.releasing = false; return advanceLayer(); }
+  if (a === 'again'){ newRun(randomSeed()); return render(); }
+  if (a === 'rerun'){ newRun(S.seed); return render(); }
+});
+document.addEventListener('keydown', function(e){
+  if (e.target && e.target.tagName === 'INPUT'){ if (e.key === 'Enter'){ e.target.blur(); var v = (e.target.value || '').trim(); newRun(v || randomSeed()); render(); } return; }
+  var d = /^[1-9]$/.test(e.key) ? +e.key : 0;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === ' ') e.preventDefault();
+  if (S.screen === 'loadout'){ if (e.key === 'Enter'){ genOffers(); S.screen = 'offers'; render(); } return; }
+  if (S.screen === 'offers'){ if (d && d <= S.offers.length){ enterNode(S.offers[d - 1]); render(); } return; }
+  if (S.screen === 'encounter'){
+    if (d && d <= S.roster.length) return call(S.roster[d - 1].id);
+    if (e.key === 'Enter') return endTurn();
+    if (e.key === 'Escape') return bail();
+    return;
+  }
+  if (S.screen === 'payout'){
+    if (S.releasing){ if (d && d <= S.roster.length) return release(S.roster[d - 1].id); if (e.key === 'Escape'){ S.offer = null; S.releasing = false; return advanceLayer(); } return; }
+    if (d === 1) return acceptOffer();
+    if (d === 2 || e.key === 'Escape'){ S.offer = null; return advanceLayer(); }
+    return;
+  }
+  if (S.screen === 'end'){ if (e.key === 'Enter'){ newRun(randomSeed()); render(); } }
+});
+
+render();
+</script>
+</body>
+</html>
