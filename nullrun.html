@@ -90,7 +90,7 @@ h1{margin:0;font:700 27px/1.08 var(--s);letter-spacing:-.02em}
 
 /* ── §T tunables ─────────────────────────────────────────── */
 var CONFIG = {
-  firewall: 24, ram: 3, rosterCap: 6,
+  firewall: 24, ram: 3, breach: 4, rosterCap: 6,
   traceMax: 100, tracePerTurn: 6, alarmCarry: 40,
   layers: 8, offers: 3,
   alarmIntentScale: 3,
@@ -171,7 +171,7 @@ function newRun(seedStr){
     traceRate: Math.max(1, CONFIG.tracePerTurn + (PERSONA.traceMod || 0)),
     roster: buildRoster().map(function(id){ return { id:id, burned:false }; }),
     burned: [], offers: [], node: null, con: null,
-    feed:'', log:[], offer:null, releasing:false, won:false, ended:false
+    feed:'', log:[], offer:null, releasing:false, won:false, ended:false, breached:false
   };
 }
 newRun(randomSeed());
@@ -207,7 +207,7 @@ function enterNode(node){
   var c = CONSTRUCTS[node.key];
   S.node = node;
   S.con = { key:node.key, name:c.name, integrity:node.integrity, max:node.integrity, armour:node.armour, idx:0 };
-  S.trace = 0; S.ram = S.ramMax; S.turns = 0;
+  S.trace = 0; S.ram = S.ramMax; S.turns = 0; S.breached = false;
   showIntent(c.intents[0]);
   S.feed = 'You are in. Something already knows.';
   S.screen = 'encounter';
@@ -236,6 +236,16 @@ function call(id){
   if (S.con.integrity <= 0){ S.con.integrity = 0; clearNode(); }
   render();
 }
+/* FR-5 / I8: the only damage that does not deplete. Free, burns nobody,
+   ignores armour, once per turn. Deliberately too weak to carry a fight. */
+function breach(){
+  if (S.breached) return;
+  S.breached = true;
+  S.con.integrity -= CONFIG.breach;
+  S.feed = 'You breach for ' + CONFIG.breach + '.';
+  if (S.con.integrity <= 0){ S.con.integrity = 0; clearNode(); }
+  render();
+}
 function endTurn(){
   S.turns++; S.runTurns++;
   S.trace += S.traceRate;
@@ -255,6 +265,7 @@ function endTurn(){
   S.con.idx = (S.con.idx + 1) % intents.length;
   showIntent(intents[S.con.idx]);
   S.ram = S.ramMax;
+  S.breached = false;
   S.feed = notes.join(' ');
   render();
 }
@@ -391,9 +402,11 @@ function encounterScreen(){
       '<span class="mono" style="font-size:10.5px">+' + S.traceRate + ' PER TURN</span></div>' +
       '<div class="meter trace' + (crit ? ' crit' : '') + '"><i style="width:' + tracePct + '%"></i></div></div>' +
     '<div class="roster">' + cards + '</div>' +
+    '<div class="krow"><button class="cta"' + (S.breached ? ' disabled style="opacity:.4"' : '') + ' data-act="breach">' +
+      (S.breached ? 'BREACHED' : 'BREACH ' + CONFIG.breach) + '</button></div>' +
     '<div class="krow"><button class="cta ghost" data-act="end">END TURN</button>' +
       '<button class="cta ghost" style="width:auto;padding:0 18px;color:var(--faint)" data-act="bail">BAIL</button></div>' +
-    '<span class="keys">digits call a contact · ENTER end turn · ESC bail</span></div>';
+    '<span class="keys">digits call a contact · B breach · ENTER end turn · ESC bail</span></div>';
 }
 function payoutScreen(){
   if (S.releasing){
@@ -469,6 +482,7 @@ app.addEventListener('click', function(e){
   var a = d.act;
   if (a === 'start'){ genOffers(); S.screen = 'offers'; return render(); }
   if (a === 'reseed'){ var v = (document.getElementById('seedin').value || '').trim(); newRun(v || randomSeed()); return render(); }
+  if (a === 'breach') return breach();
   if (a === 'end') return endTurn();
   if (a === 'bail') return bail();
   if (a === 'accept') return acceptOffer();
@@ -484,6 +498,7 @@ document.addEventListener('keydown', function(e){
   if (S.screen === 'offers'){ if (d && d <= S.offers.length){ enterNode(S.offers[d - 1]); render(); } return; }
   if (S.screen === 'encounter'){
     if (d && d <= S.roster.length) return call(S.roster[d - 1].id);
+    if (e.key === 'b' || e.key === 'B') return breach();
     if (e.key === 'Enter') return endTurn();
     if (e.key === 'Escape') return bail();
     return;
