@@ -90,7 +90,7 @@ h1{margin:0;font:700 27px/1.08 var(--s);letter-spacing:-.02em}
 
 /* ── §T tunables ─────────────────────────────────────────── */
 var CONFIG = {
-  firewall: 24, ram: 3, breach: 4, repair: 12, rosterCap: 6,
+  firewall: 60, ram: 3, breach: 4, breachGrowth: 2, repair: 24, rosterCap: 6,
   traceMax: 100, tracePerTurn: 15,
   layers: 8, offers: 3,
   nodeLayerScale: 0.14,
@@ -118,11 +118,11 @@ var CONTACTS = {
 var POOL = ['grief','tally','ash','prior','ninth','cardinal','wren','saint','dolorosa'];
 
 var CONSTRUCTS = {
-  wall:   { name:'ICE WALL',       tag:'COMBAT', integrity:52, armour:3, intents:[{ l:'STRIKE', d:12 }] },
-  sweep:  { name:'CORPSEC SWEEP',  tag:'HARD',   integrity:74, armour:1, intents:[{ l:'BURST', d:9 },{ l:'SUPPRESS', d:15 }] },
-  cold:   { name:'COLD STORAGE',   tag:'QUIET',  integrity:34, armour:0, intents:[{ l:'HOLD', d:0 },{ l:'PURGE', d:11 }] },
-  hunter: { name:'HUNTER',         tag:'HARD',   integrity:60, armour:2, intents:[{ l:'HUNT', d:14 }] },
-  archon: { name:'ARCHON',         tag:'CORE',   integrity:96, armour:3, intents:[{ l:'SHOCKWAVE', d:16 },{ l:'RESTORE', d:0, restore:2 },{ l:'SHOCKWAVE', d:20 }] }
+  wall:   { name:'ICE WALL',       tag:'COMBAT', integrity:78,  armour:3, intents:[{ l:'STRIKE', d:7 }] },
+  sweep:  { name:'CORPSEC SWEEP',  tag:'HARD',   integrity:111, armour:1, intents:[{ l:'BURST', d:5 },{ l:'SUPPRESS', d:9 }] },
+  cold:   { name:'COLD STORAGE',   tag:'QUIET',  integrity:51,  armour:0, intents:[{ l:'HOLD', d:0 },{ l:'PURGE', d:7 }] },
+  hunter: { name:'HUNTER',         tag:'HARD',   integrity:90,  armour:2, intents:[{ l:'HUNT', d:8 }] },
+  archon: { name:'ARCHON',         tag:'CORE',   integrity:144, armour:3, intents:[{ l:'SHOCKWAVE', d:10 },{ l:'RESTORE', d:0, restore:2 },{ l:'SHOCKWAVE', d:12 }] }
 };
 var PERSONA = { name:'KESTREL', role:'DECKER', firewall:CONFIG.firewall, ram:CONFIG.ram, passive:'Runs quiet. Trace rises 1 slower each turn.', traceMod:-1 };
 var BASE_ROSTER = ['velvet','bishop','sparrow'];
@@ -236,11 +236,13 @@ function call(id){
 }
 /* FR-5 / I8: the only damage that does not deplete. Free, burns nobody,
    ignores armour, once per turn. Deliberately too weak to carry a fight. */
+function breachDamage(){ return CONFIG.breach + (S.layer - 1) * CONFIG.breachGrowth; }
 function breach(){
   if (S.breached) return;
+  var d = breachDamage();
   S.breached = true;
-  S.con.integrity -= CONFIG.breach;
-  S.feed = 'You breach for ' + CONFIG.breach + '.';
+  S.con.integrity -= d;
+  S.feed = 'You breach for ' + d + '.';
   if (S.con.integrity <= 0){ S.con.integrity = 0; clearNode(); }
   render();
 }
@@ -396,7 +398,8 @@ function encounterScreen(){
     '<div class="meter"><i style="width:' + pct + '%;background:var(--world)"></i></div>' +
     '<div class="art" style="flex:1;min-height:104px">construct feed<br>[ art placeholder ]</div>' +
     '<div style="display:flex;gap:7px;flex-wrap:wrap">' +
-      '<span class="chip harm">NEXT: ' + esc(it.l) + (v > 0 ? ' ' + v : '') + '</span>' +
+      '<span class="chip harm">NEXT: ' + esc(it.l) + ' ' +
+        (v > 0 ? String(v) : (it.restore ? '+' + it.restore + ' ARMOUR' : '0')) + '</span>' +
       '<span class="chip">ARMOUR ' + con.armour + '</span>' +
       '<span class="chip you">FIREWALL ' + S.fw + '</span>' +
       '<span class="chip you">RAM ' + S.ram + '/' + S.ramMax + '</span></div>' +
@@ -406,7 +409,7 @@ function encounterScreen(){
       '<div class="meter trace' + (crit ? ' crit' : '') + '"><i style="width:' + tracePct + '%"></i></div></div>' +
     '<div class="roster">' + cards + '</div>' +
     '<div class="krow"><button class="cta"' + (S.breached ? ' disabled style="opacity:.4"' : '') + ' data-act="breach">' +
-      (S.breached ? 'BREACHED' : 'BREACH ' + CONFIG.breach) + '</button></div>' +
+      (S.breached ? 'BREACHED' : 'BREACH ' + breachDamage()) + '</button></div>' +
     '<div class="krow"><button class="cta ghost" data-act="end">END TURN</button>' +
       '<button class="cta ghost" style="width:auto;padding:0 18px;color:var(--faint)" data-act="bail">BAIL</button></div>' +
     '<span class="keys">digits call a contact · B breach · ENTER end turn · ESC bail</span></div>';

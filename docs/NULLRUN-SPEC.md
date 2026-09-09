@@ -1,6 +1,6 @@
 # NULLRUN — Specification
 
-**Version:** 0.6.0
+**Version:** 0.7.0
 **Status:** authoritative. The build derives from this document. If the build does anything not written here, the build is wrong or this document is incomplete. Fix the document first.
 
 ---
@@ -96,7 +96,7 @@ A complete, tense hand of decisions every turn, and a whole run in under fifteen
 - `FR-2` **Turn contract.** The construct's next intent shows for the whole turn. The player calls any number of affordable ready contacts in any order, and may breach once. Ending the turn resolves in order: trace rises; the run ends if trace is full; the shown intent resolves against firewall; the run ends if firewall hits zero; the next intent shows; RAM refills. RAM never carries over; nothing else expires.
 - `FR-3` **Telegraphing.** A shown intent states its label and exact resolved value in text, and resolves at the end of the turn it was shown for. Its value is fixed when shown. Intents run a fixed per-construct cycle.
 - `FR-4` **Roster and RAM.** The whole roster is visible at once: no draw, discard, shuffle or hand. Contacts cost 0 to 3 RAM. Calling one resolves its effect and burns it for the rest of the node (P3.3, I3). An effect may refund RAM.
-- `FR-5` **Breach.** Once per turn the player may breach: it deals the breach damage in §T, costs no RAM, burns nobody, ignores armour, and is available in every encounter state. Both its jobs are load-bearing. It guarantees a meaningful action (I5), and it is the only damage that does not deplete (I8) — so it converts turns into damage and makes encounter length a resource bought with trace. It is deliberately too weak to carry an encounter, only to extend one.
+- `FR-5` **Breach.** Once per turn the player may breach: it deals the §T breach damage plus the breach growth for each layer below the first, costs no RAM, burns nobody, ignores armour, and is available in every encounter state. It grows because node integrity grows — a flat trickle decays in relative terms until deep nodes are unclearable. Both its jobs are load-bearing: it guarantees a meaningful action (I5), and it is the only damage that does not deplete (I8), converting turns into damage and making encounter length a resource bought with trace. It stays too weak to carry an encounter, only to extend one.
 - `FR-6` **Firewall.** The player's only health. Contacts may add to it; it is uncapped and never decays. At zero or below the run ends.
 - `FR-7` **Construct.** Constructs have integrity and armour. Contact damage is reduced by armour to a minimum of 1 unless the contact pierces. A contact may strip armour; a construct may restore its own. Integrity at zero clears the node.
 - `FR-8` **Bail.** Available in every encounter state. Ends the run at once as a loss, banking credits earned. Guarantees I7.
@@ -127,15 +127,15 @@ A complete, tense hand of decisions every turn, and a whole run in under fifteen
 
 All balance numbers live in one `CONFIG` object at the top of the build. Changing one is always an iterate, never a rebuild.
 
-Current values: firewall 24, RAM 3, breach damage 4, repair 12, roster cap 6, trace max 100, trace per turn 15, layers 8, offers per layer 3, node integrity +14% per layer and +10% per alarm level, node payout 60 flat plus 40 scaled plus 60 for an alarm node, core payout 600, unlock thresholds 400 / 1200 / 2400 credits, construct integrity 34 to 96, construct armour 0 to 3, contact cost 0 to 3.
+Current values: firewall 60, RAM 3, breach damage 4, breach growth 2 per layer, repair 24, roster cap 6, trace max 100, trace per turn 15, layers 8, offers per layer 3, node integrity +14% per layer and +10% per alarm level, node payout 60 flat plus 40 scaled plus 60 for an alarm node, core payout 600, unlock thresholds 400 / 1200 / 2400 credits, construct integrity 34 to 96, construct armour 0 to 3, contact cost 0 to 3.
 
 ### §C Content tables
 
-**Constructs.** ICE WALL heavily armoured, one heavy intent. CORPSEC SWEEP highest integrity, low armour, two alternating intents. COLD STORAGE fragile, unarmoured, alternates a held turn with a heavy purge. HUNTER fast and armoured, one heavy intent. ARCHON the core: a three-intent cycle restoring its own armour mid-cycle.
+**Constructs.** Integrity · armour · intents. ICE WALL 78 · 3 · STRIKE 7. CORPSEC SWEEP 111 · 1 · BURST 5, SUPPRESS 9. COLD STORAGE 51 · 0 · HOLD, PURGE 7. HUNTER 90 · 2 · HUNT 8. ARCHON the core, 144 · 3 · SHOCKWAVE 10, RESTORE 2 armour, SHOCKWAVE 12.
 
-**Contact effects** compose only from: damage, pierce, strip, firewall, trace, RAM refund. A contact needing anything else is a rebuild trigger.
+**Contact effects** compose only from: damage, pierce, strip, firewall, trace, RAM refund. Anything else is a rebuild trigger.
 
-**Personas.** KESTREL decker, firewall 24, RAM 3, passive: trace rises 1 slower per turn.
+**Personas.** KESTREL decker, firewall 60, RAM 3, passive: trace rises 1 slower per turn.
 
 **Base roster (3).** VELVET face · BISHOP decker · SPARROW scout. Hardware brings the rest; the default loadout starts at five.
 
@@ -165,31 +165,31 @@ A rebuild is accepted only when all pass.
 - `K12` Every interactive target is at least 44px on the short edge (FR-18).
 - `K13` Accepting at the cap forces a release, never exceeding it (FR-13).
 - `K14` Contact damage never falls below 1 against armour; pierce and breach ignore armour (FR-7, FR-5).
-- `K16` **Renewable resources.** A layer-1 node is clearable by breach alone with every contact burned, and repair is reachable with no contact on offer (I8). Regression guard: 0.3.x lost both silently and passed every other check.
+- `K16` **Renewable resources.** A layer-1 node is clearable by breach alone with every contact burned, and repair is reachable with no contact offered (I8). Regression guard: 0.3.x lost both silently and passed every other check.
 - `K17` **Trace bites.** Trace ends some runs across 200 seeds. A clock that never strikes is the alarm system again.
-- `K15` **Viability.** A competent scripted policy clears layer 1 and wins some runs across 200 seeds. Conformance is not playability; without this, §K passes on an unwinnable game.
+- `K15` **Viability.** A competent policy wins 15% to 65% of 200 seeds, encounters average at least 2.5 turns, and under a tenth end before a turn is taken. A win bought by ending encounters instantly is not playability.
 
 ### §O Open questions and known risks
 
-- `O1` **Roster size.** Six visible contacts may be too few for real combinations, or just enough to keep the decision on one screen.
+- `O1` **Roster size.** Six may be too few for real combinations, or just enough to keep the decision on one screen.
 - `O2` Whether eight layers suits single-construct duels. Five may be tighter.
 - `O3` **Resolved 0.3.0.** The model is a visible roster of exhaustible people, not a shuffled deck. Draw, discard, shuffle and hand are rejected. The collection in FR-16 stays, but only to widen the payout pool.
 - `O4` **Resolved 0.4.0.** Without renewable damage, per-encounter damage is bounded by roster size whatever the burn scope, so per-encounter burn was never the fix. It, lower integrity and higher firewall were each measured against 0.3.1 and rejected (`docs/conformance/`). Contacts burn for the run; breach supplies the renewal.
-- `O5` Payout offers are uniform across the unlocked pool. Weighting toward missing roles may read fairer, or flatten identity.
-- `O6` **Upgrades.** No path improves a contact instead of replacing them. Adding one changes FR-12 and §C: a rebuild.
+- `O5` Payout offers are uniform. Weighting toward missing roles may read fairer, or flatten identity.
+- `O6` **Upgrades.** No path improves a contact instead of replacing it. Adding one changes FR-12 and §C: a rebuild.
 - `O7` **Node variety.** Every layer offers the same three-node shape. Rest, fixer and elite nodes are the largest missing structure.
 - `O8` Whether trace now supplies real pressure, or breach only lengthens fights without tightening them.
 - `O9` Whether hardware that only injects contacts and numbers is interesting, or must touch the turn contract.
-- `O10` **Persona depth.** One persona exists. Whether personas unlock with credits, and whether a passive can exceed a tunable modifier without breaking FR-14, is open.
-- `O11` **Bail semantics.** Bailing ends the run. Abandoning one encounter and continuing needs a rule for what the abandoned layer costs.
-- `O12` **Breach and weak contacts.** At breach 4, BISHOP's 5 damage is barely more than free. Whether low-damage contacts still earn a slot, or need re-cutting around what breach cannot do, is unmeasured.
-- `O13` **Breach and trace.** Nothing costs trace today. Whether breach should — making the quiet run and the fast run the same run — is unexplored.
+- `O10` **Persona depth.** One persona exists. Whether personas unlock with credits, and whether a passive can exceed a tunable modifier, is open.
+- `O11` **Bail semantics.** Bailing ends the run. Abandoning one encounter and continuing needs a rule for what that costs.
+- `O12` **Breach and weak contacts.** Breach grows while contact damage does not, so by layer 6 a free action out-damages most of the roster. Contacts must eventually earn their slot on what breach cannot do — strip, firewall, trace — not on damage. The most likely next structural failure.
+- `O13` **Breach and trace.** Nothing costs trace today. Whether breach should — making the quiet run and the fast run one run — is unexplored.
 
 ### Change log
 
 Older entries live in git history, under the `spec/*` tags.
 
-- `0.6.0` **Rebuild.** Burn narrowed from run-scoped to node-scoped: the roster returns to ready on entering a node (I3, FR-4), and P3.3 narrows with it — spending is still losing, over one encounter rather than the whole run. Fixes the replenishment ratio that made 0.4.1 unwinnable: contacts burned about four per node while payout replenished one, so the roster was bankrupt by layer 2 regardless of firewall. A payout contact is now permanent growth rather than a patch. Measured on 0.4.1 as the largest available lever, 1.6 to 4.4 mean layers. Note the 0.3.1 run rejected this same change; that verdict was taken before breach existed and did not survive re-measurement.
-- `0.5.0` **Rebuild.** Alarm cut entirely — level, intent scaling, carry-over, alarm nodes, HUNTER's gate and I2 — after firing in 0% of runs across three builds. Trace takes its place: at 100 the run ends (FR-9). `K17` requires trace to actually end runs, and immediately caught the replacement being as dead as the original at the inherited rate.
-- `0.4.1` Payout becomes a choice: contact or repair (FR-12), restoring the utility slot 0.3.0 dropped. I8 widened from damage to resources.
-- `0.4.0` **Rebuild.** Added breach (FR-5) and invariant I8, restoring what the 0.2.x free step was silently doing: the old FR-6 documented only its I6 job, so 0.3.0 preserved that job through bail and dropped the undocumented one.
+- `0.7.0` **Rebuild.** Breach grows per layer (FR-5); firewall, repair and every construct's integrity and intents are retuned with it (§T, §C). Breach had to grow because integrity does: damage per node was capped at 57 while layer 6's softest node reached 58, capping the run at layer 5 — the 0.3.x bug's shape, one level up. Scaling breach alone passed K15 by collapsing encounters to one turn, so K15 now requires encounters of real length: a win bought by ending them instantly is not playability. The four quantities are over-constrained and were solved jointly.
+- `0.6.0` **Rebuild.** Burn narrowed to node-scoped (I3, FR-4, P3.3), fixing a ratio that burned four contacts per node against one replaced. The 0.3.1 run rejected this change; that verdict predated breach and did not survive re-measurement.
+- `0.5.0` **Rebuild.** Alarm cut after firing in 0% of runs across three builds. Trace takes its place: at 100 the run ends (FR-9). `K17` immediately caught the replacement being as dead as the original.
+- `0.4.0` – `0.4.1` **Rebuild.** Added breach (FR-5) and I8, restoring what the 0.2.x free step was silently doing; then repair (FR-12), firewall having the identical structure.
