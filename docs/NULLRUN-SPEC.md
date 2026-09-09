@@ -1,6 +1,6 @@
 # NULLRUN — Specification
 
-**Version:** 0.4.1
+**Version:** 0.5.0
 **Status:** authoritative. The build derives from this document. If the build does anything not written here, the build is wrong or this document is incomplete. Fix the document first.
 
 ---
@@ -78,12 +78,11 @@ A complete, tense hand of decisions every turn, and a whole run in under fifteen
 
 ### §S Systems
 
-`S1` route · `S2` turn engine · `S3` constructs · `S4` roster and contacts · `S5` trace and alarm · `S6` payouts · `S7` presentation · `S8` persistence
+`S1` route · `S2` turn engine · `S3` constructs · `S4` roster and contacts · `S5` trace · `S6` payouts · `S7` presentation · `S8` persistence
 
 ### §I Invariants
 
 - `I1` Same seed plus same input sequence yields the same run, bit for bit.
-- `I2` Every offer layer presents at least one node that does not raise alarm.
 - `I3` **Roster conservation.** Every contact is ready or burned, never duplicated, never returning to ready before the run ends.
 - `I4` Firewall is only ever reduced by the intent displayed for that whole turn.
 - `I5` The player always has a legal action: ending the turn, breaching and bailing are always available.
@@ -94,15 +93,15 @@ A complete, tense hand of decisions every turn, and a whole run in under fifteen
 ### Functional
 
 - `FR-1` **Encounter.** One player, one construct. No grid, no movement. The only decision is which contact to spend, and when.
-- `FR-2` **Turn contract.** The construct's next intent shows for the whole turn. The player calls any number of affordable ready contacts in any order, and may breach once. Ending the turn resolves in order: trace rises; alarm increments if trace is full; the shown intent resolves against firewall; the run ends if firewall hits zero; the next intent shows; RAM refills. RAM never carries over; nothing else expires.
-- `FR-3` **Telegraphing.** A shown intent states its label and exact resolved value in text, and resolves at the end of the turn it was shown for. Its value is fixed when shown: a later alarm increment applies to the next intent, never the pending one. Intents run a fixed per-construct cycle.
+- `FR-2` **Turn contract.** The construct's next intent shows for the whole turn. The player calls any number of affordable ready contacts in any order, and may breach once. Ending the turn resolves in order: trace rises; the run ends if trace is full; the shown intent resolves against firewall; the run ends if firewall hits zero; the next intent shows; RAM refills. RAM never carries over; nothing else expires.
+- `FR-3` **Telegraphing.** A shown intent states its label and exact resolved value in text, and resolves at the end of the turn it was shown for. Its value is fixed when shown. Intents run a fixed per-construct cycle.
 - `FR-4` **Roster and RAM.** The whole roster is visible at once: no draw, discard, shuffle or hand. Contacts cost 0 to 3 RAM. Calling one resolves its effect and burns it for the rest of the run (P3.3, I3). An effect may refund RAM.
 - `FR-5` **Breach.** Once per turn the player may breach: it deals the breach damage in §T, costs no RAM, burns nobody, ignores armour, and is available in every encounter state. Both its jobs are load-bearing. It guarantees a meaningful action (I5), and it is the only damage that does not deplete (I8) — so it converts turns into damage and makes encounter length a resource bought with trace. It is deliberately too weak to carry an encounter, only to extend one.
 - `FR-6` **Firewall.** The player's only health. Contacts may add to it; it is uncapped and never decays. At zero or below the run ends.
 - `FR-7` **Construct.** Constructs have integrity and armour. Contact damage is reduced by armour to a minimum of 1 unless the contact pierces. A contact may strip armour; a construct may restore its own. Integrity at zero clears the node.
 - `FR-8` **Bail.** Available in every encounter state. Ends the run at once as a loss, banking credits earned. Guarantees I7.
-- `FR-9` **Trace.** 0 to 100, rising a fixed amount per turn, modified by persona; contacts may raise or lower it. At 100 alarm increments and trace resets to a carry-over. Intent values gain the alarm scale per level. Trace resets on entering a node; alarm persists for the run and also rises when an alarm node is taken.
-- `FR-10` **Route.** Eight layers. Layers 1 to 7 offer three nodes drawn without replacement from the construct set, so no two match; HUNTER joins it once alarm is above zero. A node states construct, integrity, armour, payout, and whether it raises alarm. Integrity and payout scale with layer and alarm; an alarm node pays more. No map: three offers, a short run log, the layer counter. One must be taken.
+- `FR-9` **Trace.** 0 to 100, rising a fixed amount per turn, modified by persona; contacts may raise or lower it. **At 100 the run ends: you are traced.** Trace resets on entering a node, so it bounds how long one node may be worked. It is the only cost of taking a turn, and so the only thing stopping breach from grinding any construct down for free.
+- `FR-10` **Route.** Eight layers. Layers 1 to 7 offer three nodes drawn without replacement from the construct set, so no two match. A node states construct, integrity, armour and payout, both of which scale with layer. No map: three offers, a short run log, the layer counter. One must be taken.
 - `FR-11` **Layer 8.** A fixed encounter against the core. No offers, no alternative route.
 - `FR-12` **Payout.** Clearing a node pays credits and offers a choice: one new contact from the unlocked pool excluding those on the roster, or repair, restoring the §T repair value to firewall. Repair is offered even when the contact pool is empty at the current tier. The screen names every contact burned. Declining both is always offered.
 - `FR-13` **Roster pressure.** The roster is capped (§T; hardware may raise it). Accepting at the cap requires releasing one, chosen from the full roster, burned or ready. Keeping the roster unchanged is always offered.
@@ -128,11 +127,11 @@ A complete, tense hand of decisions every turn, and a whole run in under fifteen
 
 All balance numbers live in one `CONFIG` object at the top of the build. Changing one is always an iterate, never a rebuild.
 
-Current values: firewall 24, RAM 3, breach damage 4, repair 12, roster cap 6, trace max 100, trace per turn 6, alarm carry-over 40, alarm intent scale 3, layers 8, offers per layer 3, node integrity +14% per layer and +10% per alarm level, node payout 60 flat plus 40 scaled plus 60 for an alarm node, core payout 600, unlock thresholds 400 / 1200 / 2400 credits, construct integrity 34 to 96, construct armour 0 to 3, contact cost 0 to 3.
+Current values: firewall 24, RAM 3, breach damage 4, repair 12, roster cap 6, trace max 100, trace per turn 15, layers 8, offers per layer 3, node integrity +14% per layer and +10% per alarm level, node payout 60 flat plus 40 scaled plus 60 for an alarm node, core payout 600, unlock thresholds 400 / 1200 / 2400 credits, construct integrity 34 to 96, construct armour 0 to 3, contact cost 0 to 3.
 
 ### §C Content tables
 
-**Constructs.** ICE WALL heavily armoured, one heavy intent. CORPSEC SWEEP highest integrity, low armour, two alternating intents. COLD STORAGE fragile, unarmoured, alternates a held turn with a heavy purge. HUNTER joins the offer set once alarm rises. ARCHON the core: a three-intent cycle restoring its own armour mid-cycle.
+**Constructs.** ICE WALL heavily armoured, one heavy intent. CORPSEC SWEEP highest integrity, low armour, two alternating intents. COLD STORAGE fragile, unarmoured, alternates a held turn with a heavy purge. HUNTER fast and armoured, one heavy intent. ARCHON the core: a three-intent cycle restoring its own armour mid-cycle.
 
 **Contact effects** compose only from: damage, pierce, strip, firewall, trace, RAM refund. A contact needing anything else is a rebuild trigger.
 
@@ -153,7 +152,7 @@ Current values: firewall 24, RAM 3, breach damage 4, repair 12, roster cap 6, tr
 A rebuild is accepted only when all pass.
 
 - `K1` Two generators from one seed produce identical first node offers and first payout offer.
-- `K2` Across 50 runs, every offer layer shows three distinct constructs, at least one raising no alarm (I2, FR-10).
+- `K2` Across 50 runs, every offer layer shows three distinct constructs (FR-10).
 - `K3` A burned contact can never be called again in the same run (I3).
 - `K4` Over 500 turns, roster count equals base plus hardware plus accepted minus released, never above the cap (I3, FR-13).
 - `K5` Firewall only ever falls by the value displayed on that turn's intent (I4).
@@ -167,6 +166,7 @@ A rebuild is accepted only when all pass.
 - `K13` Accepting at the cap forces a release, never exceeding it (FR-13).
 - `K14` Contact damage never falls below 1 against armour; pierce and breach ignore armour (FR-7, FR-5).
 - `K16` **Renewable resources.** A layer-1 node is clearable by breach alone with every contact burned, and repair is reachable with no contact on offer (I8). Regression guard: 0.3.x lost both silently and passed every other check.
+- `K17` **Trace bites.** Trace ends some runs across 200 seeds. A clock that never strikes is the alarm system again.
 - `K15` **Viability.** A competent scripted policy clears layer 1 and wins some runs across 200 seeds. Conformance is not playability; without this, §K passes on an unwinnable game.
 
 ### §O Open questions and known risks
@@ -189,5 +189,6 @@ A rebuild is accepted only when all pass.
 
 Older entries live in git history, under the `spec/*` tags.
 
-- `0.4.1` Payout becomes a choice: contact or repair (FR-12), restoring the utility slot the 0.3.0 rebuild dropped from the old FR-11. I8 widened from damage to resources — the bug class was never specific to damage, and firewall had the identical structure: a run-long pool refilled only by contacts that burn. Measured on 0.4.0: 194 of 200 runs died on layer 3 at mean firewall 13.
-- `0.4.0` **Rebuild.** Added breach (FR-5), a free renewable attack, and invariant I8. This restores what the 0.2.x free step was silently doing: the old FR-6 documented only its I6 job, so the 0.3.0 rebuild preserved that job through bail and dropped the undocumented one — leaving per-encounter damage bounded by roster size and every encounter decided on entry. I8 and K16 exist so a rebuild cannot lose it again. FR-2 and I5 amended, later FR renumbered. A `feature` classification changing invariants and the turn contract: a rebuild under M4.
+- `0.5.0` **Rebuild.** Alarm cut entirely: the alarm level, its intent scaling, the carry-over, alarm nodes, HUNTER's alarm gate and invariant I2 all go. It was measured dead — alarm fired in 0% of runs in every configuration across builds 0.3.1, 0.4.0 and 0.4.1, because trace resets per node and encounters last two to three turns, so trace never reached 100. Trace takes its place as its own consequence: at 100 the run ends (FR-9). This keeps pillar 2 on far less machinery and gives breach a ceiling, since a free renewable attack could otherwise grind any construct down given unlimited turns. `K17` requires trace to actually end runs — a clock that never strikes is the mistake being cut.
+- `0.4.1` Payout becomes a choice: contact or repair (FR-12), restoring the utility slot the 0.3.0 rebuild dropped from the old FR-11. I8 widened from damage to resources — firewall had the identical structure, a run-long pool refilled only by contacts that burn.
+- `0.4.0` **Rebuild.** Added breach (FR-5) and invariant I8, restoring what the 0.2.x free step was silently doing: the old FR-6 documented only its I6 job, so the 0.3.0 rebuild preserved that job through bail and dropped the undocumented one, leaving per-encounter damage bounded by roster size. I8 and K16 exist so a rebuild cannot lose it again.

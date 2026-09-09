@@ -91,11 +91,10 @@ h1{margin:0;font:700 27px/1.08 var(--s);letter-spacing:-.02em}
 /* ── §T tunables ─────────────────────────────────────────── */
 var CONFIG = {
   firewall: 24, ram: 3, breach: 4, repair: 12, rosterCap: 6,
-  traceMax: 100, tracePerTurn: 6, alarmCarry: 40,
+  traceMax: 100, tracePerTurn: 15,
   layers: 8, offers: 3,
-  alarmIntentScale: 3,
-  nodeLayerScale: 0.14, nodeAlarmScale: 0.10,
-  payoutFlat: 60, payoutScaled: 40, payoutAlarm: 60, corePayout: 600,
+  nodeLayerScale: 0.14,
+  payoutFlat: 60, payoutScaled: 40, corePayout: 600,
   unlock: { 1: 400, 2: 1200, 3: 2400 }
 };
 
@@ -165,7 +164,7 @@ function newRun(seedStr){
   var rng = makeRng(seedStr);
   S = {
     screen:'loadout', seed:String(seedStr).toUpperCase(), rng: rng,
-    layer:1, alarm:0, trace:0, credits:0, turns:0, runTurns:0,
+    layer:1, trace:0, credits:0, turns:0, runTurns:0,
     fw: PERSONA.firewall, ram: PERSONA.ram + hwSum('ram'), ramMax: PERSONA.ram + hwSum('ram'),
     rosterCap: CONFIG.rosterCap + hwSum('slots'),
     traceRate: Math.max(1, CONFIG.tracePerTurn + (PERSONA.traceMod || 0)),
@@ -179,29 +178,25 @@ newRun(randomSeed());
 /* ── S1 route ────────────────────────────────────────────── */
 function genOffers(){
   if (S.layer >= CONFIG.layers) { S.offers = []; return; }
-  var bag = ['wall','sweep','cold'];
-  if (S.alarm > 0) bag.push('hunter');
+  var bag = ['wall','sweep','cold','hunter'];
   for (var j=bag.length-1;j>0;j--){ var k = Math.floor(S.rng() * (j + 1)); var tmp = bag[j]; bag[j] = bag[k]; bag[k] = tmp; }
   var out = [];
   for (var i=0;i<CONFIG.offers;i++){
     var key = bag[i % bag.length];
-    var scale = 1 + (S.layer - 1) * CONFIG.nodeLayerScale + S.alarm * CONFIG.nodeAlarmScale;
-    var alarmCost = (i === CONFIG.offers - 1) ? 0 : (key === 'sweep' || key === 'hunter' ? 1 : 0); /* I2 */
+    var scale = 1 + (S.layer - 1) * CONFIG.nodeLayerScale;
     out.push({
       key: key,
       integrity: Math.round(CONSTRUCTS[key].integrity * scale),
       armour: CONSTRUCTS[key].armour,
-      credits: CONFIG.payoutFlat + Math.round(CONFIG.payoutScaled * scale) + alarmCost * CONFIG.payoutAlarm,
-      alarmCost: alarmCost
+      credits: CONFIG.payoutFlat + Math.round(CONFIG.payoutScaled * scale)
     });
   }
   S.offers = out;
 }
 
 /* ── S2/S3 encounter ─────────────────────────────────────── */
-/* FR-3: an intent's value is fixed the moment it is shown, so a later
-   alarm increment can never raise what the player was told would land. */
-function intentValue(it){ return it.d > 0 ? it.d + S.alarm * CONFIG.alarmIntentScale : 0; }
+/* FR-3: an intent's value is fixed the moment it is shown. */
+function intentValue(it){ return it.d > 0 ? it.d : 0; }
 function showIntent(it){ S.con.pending = it; S.con.pendingVal = intentValue(it); }
 function enterNode(node){
   var c = CONSTRUCTS[node.key];
@@ -250,10 +245,11 @@ function endTurn(){
   S.turns++; S.runTurns++;
   S.trace += S.traceRate;
   var notes = [];
-  if (S.trace >= CONFIG.traceMax){
-    S.alarm++;
-    S.trace = CONFIG.alarmCarry;
-    notes.push('TRACE COMPLETE — alarm ' + S.alarm + '. Intents scale.');
+  if (S.trace >= CONFIG.traceMax){        /* FR-9: trace is the clock and the consequence */
+    S.trace = CONFIG.traceMax;
+    S.feed = 'TRACE COMPLETE. They have you.';
+    endRun(false);
+    return;
   }
   var it = S.con.pending;
   var v = S.con.pendingVal; /* FR-3, I4: the value shown all turn, not a fresh one */
@@ -271,7 +267,6 @@ function endTurn(){
 }
 function clearNode(){
   S.credits += S.node.credits;
-  S.alarm += S.node.alarmCost;
   S.log.unshift('Layer ' + S.layer + ' — ' + S.con.name + ' down. ' + S.burned.length + ' burned.');
   S.log = S.log.slice(0, 3);
   if (S.layer >= CONFIG.layers){ endRun(true); return; }
@@ -308,7 +303,7 @@ function advanceLayer(){
   S.layer++;
   if (S.layer >= CONFIG.layers){
     S.offers = [];
-    enterNode({ key:'archon', integrity:CONSTRUCTS.archon.integrity, armour:CONSTRUCTS.archon.armour, credits:CONFIG.corePayout, alarmCost:0 });
+    enterNode({ key:'archon', integrity:CONSTRUCTS.archon.integrity, armour:CONSTRUCTS.archon.armour, credits:CONFIG.corePayout });
     return;
   }
   genOffers();
@@ -327,7 +322,7 @@ var app = document.getElementById('app');
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function bar(){
   var right = S.screen === 'encounter'
-    ? 'TURN ' + (S.turns + 1) + ' / ALARM ' + S.alarm
+    ? 'TURN ' + (S.turns + 1)
     : (S.screen === 'loadout' ? 'OFFLINE' : 'LAYER ' + Math.min(S.layer, CONFIG.layers) + ' OF ' + CONFIG.layers);
   return '<div class="bar"><span class="id">ZAIBATSU&nbsp;CONSOLE</span><span class="rt">SEED ' + esc(S.seed) + ' · ' + right + '</span></div>';
 }
@@ -376,12 +371,12 @@ function offersScreen(){
     return '<button class="node" data-node="' + i + '">' +
       '<span class="rowb" style="width:100%"><span class="nm">' + esc(c.name) + '</span>' +
       '<span class="chip ' + toneClass[c.tag] + '">' + esc(c.tag) + '</span></span>' +
-      '<span class="note">Integrity ' + o.integrity + ' · armour ' + o.armour + (o.alarmCost ? ' · raises alarm' : ' · no alarm') + '</span>' +
+      '<span class="note">Integrity ' + o.integrity + ' · armour ' + o.armour + '</span>' +
       '<span class="mono" style="font-size:11px">PAYOUT ' + o.credits + '¤ · one contact · press ' + (i + 1) + '</span></button>';
   }).join('');
   var log = S.log.length ? S.log.map(function(l){ return '<span class="mono">' + esc(l) + '</span>'; }).join('') : '<span class="mono">No layers cleared yet.</span>';
   return '<div class="screen fade">' +
-    '<div><div class="kicker" style="margin-bottom:8px">LAYER ' + S.layer + ' OF ' + CONFIG.layers + ' · ALARM ' + S.alarm + ' · ' + S.credits + '¤</div><h1>Choose your<br>way down.</h1></div>' +
+    '<div><div class="kicker" style="margin-bottom:8px">LAYER ' + S.layer + ' OF ' + CONFIG.layers + ' · ' + S.credits + '¤</div><h1>Choose your<br>way down.</h1></div>' +
     nodes + '<div class="spacer"></div>' +
     '<div class="panel flat"><span class="kicker">RUN LOG</span>' + log + '</div>' +
     '<span class="keys">1–' + S.offers.length + ' choose a node</span></div>';
