@@ -1,6 +1,6 @@
 # NULLRUN — Specification
 
-**Version:** 0.7.0
+**Version:** 0.7.1
 **Status:** authoritative. The build derives from this document. If the build does anything not written here, the build is wrong or this document is incomplete. Fix the document first.
 
 ---
@@ -120,7 +120,7 @@ A complete, tense hand of decisions every turn, and a whole run in under fifteen
 - `NFR-4` **Motion.** No non-user-triggered motion except the trace meter at critical level. All animation is suppressed under `prefers-reduced-motion`.
 - `NFR-5` **Portrait first.** Designed for 390px, playable from 360px up. The roster wraps rather than scrolling off screen. No horizontal page scroll at any width.
 - `NFR-6` **No frame loop.** Render on state change only. Idle cost is zero.
-- `NFR-7` **Size budget.** Under 1,600 lines and under 150 KB.
+- `NFR-7` **Size budget.** Under 1,600 lines and under 150 KB, embedded art included — it is the largest single cost.
 - `NFR-9` **Presentation.** Corporate system software the player does not own: flat panels, soft radii, generous spacing, one accent. Contact faces are banded — role and cost, image window, name, effect text.
 
 ### §T Tunables
@@ -145,6 +145,8 @@ Current values: firewall 60, RAM 3, breach damage 4, breach growth 2 per layer, 
 - tier 2: CARDINAL rigger, WREN infiltrator
 - tier 3: SAINT ex-corpsec, DOLOROSA unknown
 
+**Art.** One image per contact and construct, keyed by id, embedded as a data URI so NFR-1 holds. A missing key falls back to a text placeholder — the tier-2 and tier-3 contacts have none. Art never carries state alone (NFR-3).
+
 **Hardware.** HAMMER-4 adds MOLE and HATCHET · SPLIT REFLEX +1 RAM · COLD WALLET +1 roster slot. Fitted at the loadout screen.
 
 ### §K Conformance checklist
@@ -165,7 +167,7 @@ A rebuild is accepted only when all pass.
 - `K12` Every interactive target is at least 44px on the short edge (FR-18).
 - `K13` Accepting at the cap forces a release, never exceeding it (FR-13).
 - `K14` Contact damage never falls below 1 against armour; pierce and breach ignore armour (FR-7, FR-5).
-- `K16` **Renewable resources.** A layer-1 node is clearable by breach alone with every contact burned, and repair is reachable with no contact offered (I8). Regression guard: 0.3.x lost both silently and passed every other check.
+- `K16` **Renewable resources.** A layer-1 node is clearable by breach alone with every contact burned, and repair is reachable with no contact offered (I8). Guard: 0.3.x lost both silently and passed every other check.
 - `K17` **Trace bites.** Trace ends some runs across 200 seeds. A clock that never strikes is the alarm system again.
 - `K15` **Viability.** A competent policy wins 15% to 65% of 200 seeds, encounters average at least 2.5 turns, and under a tenth end before a turn is taken. A win bought by ending encounters instantly is not playability.
 
@@ -173,23 +175,23 @@ A rebuild is accepted only when all pass.
 
 - `O1` **Roster size.** Six may be too few for real combinations, or just enough to keep the decision on one screen.
 - `O2` Whether eight layers suits single-construct duels. Five may be tighter.
-- `O3` **Resolved 0.3.0.** The model is a visible roster of exhaustible people, not a shuffled deck. Draw, discard, shuffle and hand are rejected. The collection in FR-16 stays, but only to widen the payout pool.
-- `O4` **Resolved 0.4.0.** Without renewable damage, per-encounter damage is bounded by roster size whatever the burn scope, so per-encounter burn was never the fix. It, lower integrity and higher firewall were each measured against 0.3.1 and rejected (`docs/conformance/`). Contacts burn for the run; breach supplies the renewal.
+- `O3` **Resolved 0.3.0.** A visible roster of exhaustible people, not a shuffled deck. Draw, discard, shuffle and hand are rejected. The collection in FR-16 only widens the payout pool.
+- `O4` **Resolved 0.4.0.** Without renewable damage, per-encounter damage is bounded by roster size whatever the burn scope. Breach supplies the renewal; see `docs/conformance/`.
 - `O5` Payout offers are uniform. Weighting toward missing roles may read fairer, or flatten identity.
 - `O6` **Upgrades.** No path improves a contact instead of replacing it. Adding one changes FR-12 and §C: a rebuild.
-- `O7` **Node variety.** Every layer offers the same three-node shape. Rest, fixer and elite nodes are the largest missing structure.
+- `O7` **Node variety.** Every layer offers the same three-node shape. Rest, fixer and elite nodes are missing.
 - `O8` Whether trace now supplies real pressure, or breach only lengthens fights without tightening them.
-- `O9` Whether hardware that only injects contacts and numbers is interesting, or must touch the turn contract.
-- `O10` **Persona depth.** One persona exists. Whether personas unlock with credits, and whether a passive can exceed a tunable modifier, is open.
+- `O9` Whether hardware that only injects contacts and numbers is interesting.
+- `O10` **Persona depth.** One persona exists. Whether personas unlock with credits, and whether a passive can exceed a tunable, is open.
 - `O11` **Bail semantics.** Bailing ends the run. Abandoning one encounter and continuing needs a rule for what that costs.
-- `O12` **Breach and weak contacts.** Breach grows while contact damage does not, so by layer 6 a free action out-damages most of the roster. Contacts must eventually earn their slot on what breach cannot do — strip, firewall, trace — not on damage. The most likely next structural failure.
-- `O13` **Breach and trace.** Nothing costs trace today. Whether breach should — making the quiet run and the fast run one run — is unexplored.
+- `O12` **Breach and weak contacts.** Breach grows while contact damage does not, so by layer 6 the free action out-damages most of the roster. Contacts must earn their slot on what breach cannot do — strip, firewall, trace. The most likely next structural failure.
+- `O13` **Breach and trace.** Nothing costs trace today. Whether breach should is unexplored.
 
 ### Change log
 
 Older entries live in git history, under the `spec/*` tags.
 
-- `0.7.0` **Rebuild.** Breach grows per layer (FR-5); firewall, repair and every construct's integrity and intents are retuned with it (§T, §C). Breach had to grow because integrity does: damage per node was capped at 57 while layer 6's softest node reached 58, capping the run at layer 5 — the 0.3.x bug's shape, one level up. Scaling breach alone passed K15 by collapsing encounters to one turn, so K15 now requires encounters of real length: a win bought by ending them instantly is not playability. The four quantities are over-constrained and were solved jointly.
-- `0.6.0` **Rebuild.** Burn narrowed to node-scoped (I3, FR-4, P3.3), fixing a ratio that burned four contacts per node against one replaced. The 0.3.1 run rejected this change; that verdict predated breach and did not survive re-measurement.
-- `0.5.0` **Rebuild.** Alarm cut after firing in 0% of runs across three builds. Trace takes its place: at 100 the run ends (FR-9). `K17` immediately caught the replacement being as dead as the original.
-- `0.4.0` – `0.4.1` **Rebuild.** Added breach (FR-5) and I8, restoring what the 0.2.x free step was silently doing; then repair (FR-12), firewall having the identical structure.
+- `0.7.1` Art for nine contacts and five constructs (§C), embedded as data URIs. Recorded in §C because it would otherwise vanish at the next rebuild, as the free step and repair did. Build 33 KB to 92 KB of 150 KB.
+- `0.7.0` **Rebuild.** Breach grows per layer (FR-5); firewall, repair, integrity and intents retuned with it (§T, §C). Breach had to grow because integrity does: damage per node was capped at 57 while layer 6's softest node reached 58, capping the run at layer 5 — the 0.3.x bug's shape, one level up. Scaling breach alone passed K15 by collapsing encounters to one turn, so K15 now requires encounters of real length. The four quantities are over-constrained and were solved jointly.
+- `0.6.0` **Rebuild.** Burn narrowed to node-scoped (I3, FR-4, P3.3), fixing a ratio that burned four contacts per node against one replaced. The 0.3.1 run rejected this change on evidence that predated breach.
+- `0.5.0` **Rebuild.** Alarm cut after firing in 0% of runs across three builds. Trace takes its place: at 100 the run ends (FR-9). `K17` caught the replacement being as dead as the original.
