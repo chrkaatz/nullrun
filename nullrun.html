@@ -96,11 +96,11 @@ h1{margin:0;font:700 27px/1.08 var(--s);letter-spacing:-.02em}
 
 /* ── §T tunables ─────────────────────────────────────────── */
 var CONFIG = {
-  firewall: 60, ram: 3, breach: 4, breachGrowth: 2, repair: 24, rosterCap: 6,
+  firewall: 60, ram: 3, breach: 4, breachGrowth: 2, repair: 24, rosterCap: 8,
   traceMax: 100, tracePerTurn: 15,
   layers: 8, offers: 3,
   nodeLayerScale: 0.14,
-  payoutFlat: 60, payoutScaled: 40, corePayout: 600,
+  payoutFlat: 60, payoutPerIntegrity: 1.2, corePayout: 600,
   unlock: { 1: 400, 2: 1200, 3: 2400 }
 };
 
@@ -125,7 +125,7 @@ var POOL = ['grief','tally','ash','prior','ninth','cardinal','wren','saint','dol
 
 var CONSTRUCTS = {
   wall:   { name:'ICE WALL',       tag:'COMBAT', integrity:78,  armour:3, intents:[{ l:'STRIKE', d:7 }] },
-  sweep:  { name:'CORPSEC SWEEP',  tag:'HARD',   integrity:111, armour:1, intents:[{ l:'BURST', d:5 },{ l:'SUPPRESS', d:9 }] },
+  sweep:  { name:'CORPSEC SWEEP',  tag:'HARD',   integrity:95,  armour:1, intents:[{ l:'BURST', d:5 },{ l:'SUPPRESS', d:9 }] },
   cold:   { name:'COLD STORAGE',   tag:'QUIET',  integrity:51,  armour:0, intents:[{ l:'HOLD', d:0 },{ l:'PURGE', d:7 }] },
   hunter: { name:'HUNTER',         tag:'HARD',   integrity:90,  armour:2, intents:[{ l:'HUNT', d:8 }] },
   archon: { name:'ARCHON',         tag:'CORE',   integrity:144, armour:3, intents:[{ l:'SHOCKWAVE', d:10 },{ l:'RESTORE', d:0, restore:2 },{ l:'SHOCKWAVE', d:12 }] }
@@ -201,20 +201,48 @@ function newRun(seedStr){
 newRun(randomSeed());
 
 /* ── S1 route ────────────────────────────────────────────── */
+/* I2: the damage the player could actually bring to bear on one node —
+   every ready contact once, plus breach for every turn trace allows. */
+function damageBudget(armour){
+  var turns = Math.floor(CONFIG.traceMax / S.traceRate);
+  var burst = 0;
+  S.roster.forEach(function(r){
+    var c = CONTACTS[r.id];
+    if (c.dmg) burst += c.pierce ? c.dmg : Math.max(1, c.dmg - armour);
+  });
+  return burst + breachDamage() * turns;
+}
 function genOffers(){
   if (S.layer >= CONFIG.layers) { S.offers = []; return; }
   var bag = ['wall','sweep','cold','hunter'];
   for (var j=bag.length-1;j>0;j--){ var k = Math.floor(S.rng() * (j + 1)); var tmp = bag[j]; bag[j] = bag[k]; bag[k] = tmp; }
+  var scale = 1 + (S.layer - 1) * CONFIG.nodeLayerScale;
+  var integ = function(key){ return Math.round(CONSTRUCTS[key].integrity * scale); };
+  var clearable = function(key){ return integ(key) <= damageBudget(CONSTRUCTS[key].armour); };
+
+  /* I2: guarantee one takeable node. No extra rng is drawn, so NFR-2 holds. */
+  var i;
+  var any = false;
+  for (i=0;i<CONFIG.offers;i++) if (clearable(bag[i])) { any = true; break; }
+  if (!any){
+    for (i=CONFIG.offers;i<bag.length;i++){
+      if (clearable(bag[i])){ var t = bag[i]; bag[i] = bag[CONFIG.offers-1]; bag[CONFIG.offers-1] = t; any = true; break; }
+    }
+  }
   var out = [];
-  for (var i=0;i<CONFIG.offers;i++){
+  for (i=0;i<CONFIG.offers;i++){
     var key = bag[i % bag.length];
-    var scale = 1 + (S.layer - 1) * CONFIG.nodeLayerScale;
-    out.push({
-      key: key,
-      integrity: Math.round(CONSTRUCTS[key].integrity * scale),
-      armour: CONSTRUCTS[key].armour,
-      credits: CONFIG.payoutFlat + Math.round(CONFIG.payoutScaled * scale)
-    });
+    var n = integ(key);
+    out.push({ key:key, integrity:n, armour:CONSTRUCTS[key].armour,
+               credits: CONFIG.payoutFlat + Math.round(n * CONFIG.payoutPerIntegrity) });
+  }
+  if (!any){
+    /* Nothing in the set is clearable. Soften the easiest to exactly reachable
+       rather than offer a layer that cannot be taken (I2). */
+    var e = 0;
+    for (i=1;i<out.length;i++) if (out[i].integrity < out[e].integrity) e = i;
+    out[e].integrity = Math.max(1, damageBudget(out[e].armour));
+    out[e].credits = CONFIG.payoutFlat + Math.round(out[e].integrity * CONFIG.payoutPerIntegrity);
   }
   S.offers = out;
 }
