@@ -169,7 +169,7 @@ function newRun(seedStr){
     rosterCap: CONFIG.rosterCap + hwSum('slots'),
     traceRate: Math.max(1, CONFIG.tracePerTurn + (PERSONA.traceMod || 0)),
     roster: buildRoster().map(function(id){ return { id:id, burned:false }; }),
-    burned: [], offers: [], node: null, con: null,
+    burned: [], calls: 0, offers: [], node: null, con: null,
     feed:'', log:[], offer:null, releasing:false, won:false, ended:false, breached:false
   };
 }
@@ -203,6 +203,8 @@ function enterNode(node){
   S.node = node;
   S.con = { key:node.key, name:c.name, integrity:node.integrity, max:node.integrity, armour:node.armour, idx:0 };
   S.trace = 0; S.ram = S.ramMax; S.turns = 0; S.breached = false;
+  S.roster.forEach(function(r){ r.burned = false; });  /* I3: ready again at each node */
+  S.burned = [];
   showIntent(c.intents[0]);
   S.feed = 'You are in. Something already knows.';
   S.screen = 'encounter';
@@ -226,6 +228,7 @@ function call(id){
   if (c.trace){ S.trace = Math.max(0, Math.min(CONFIG.traceMax, S.trace + c.trace)); msg.push('Trace ' + (c.trace > 0 ? '+' : '') + c.trace + '.'); }
   slot.burned = true;
   S.burned.push(id);
+  S.calls++;
   S.ram = S.ram - c.cost + (c.refund || 0);
   S.feed = msg.join(' ');
   if (S.con.integrity <= 0){ S.con.integrity = 0; clearNode(); }
@@ -334,7 +337,7 @@ function cardHtml(slot){
     '<span class="band"><span>' + esc(c.role) + '</span><b>' + c.cost + '</b></span>' +
     '<span class="win">' + (slot.burned ? 'BURNED' : 'portrait') + '</span>' +
     '<span class="nm">' + esc(c.name) + '</span>' +
-    '<span class="fx">' + (slot.burned ? 'Burned. Unavailable for the rest of the run.' : esc(c.fx)) + '</span>' +
+    '<span class="fx">' + (slot.burned ? 'Burned. Unavailable for the rest of this node.' : esc(c.fx)) + '</span>' +
     '</button>';
 }
 function loadoutScreen(){
@@ -357,7 +360,7 @@ function loadoutScreen(){
       '<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip you">FIREWALL ' + S.fw + '</span><span class="chip you">RAM ' + S.ramMax + '</span><span class="chip">ROSTER ' + S.roster.length + '/' + S.rosterCap + '</span></div></div>' +
     '<div class="panel flat"><span class="kicker">HARDWARE — TAP TO FIT</span>' + hw + '</div>' +
     '<div class="kicker">ON RETAINER</div><div class="list">' + rows + '</div>' +
-    '<div class="dash">Call someone in and they are burned for the rest of the run. Nobody answers twice.</div>' +
+    '<div class="dash">Call someone in and they are burned until the next node. Nobody answers twice in the same system.</div>' +
     '<div class="panel flat"><span class="kicker">SEED</span><div class="seed"><input id="seedin" value="' + esc(S.seed) + '" spellcheck="false" aria-label="Run seed"><button class="cta ghost small" style="width:auto;padding:0 14px" data-act="reseed">SET</button></div>' +
       '<span class="mono" style="font-size:11px">Banked across runs: ' + COL.credits + '¤ · tier ' + unlockedTier(COL.credits) + ' unlocked</span></div>' +
     '<div class="spacer"></div>' +
@@ -414,7 +417,7 @@ function payoutScreen(){
       var c = CONTACTS[r.id];
       return '<button class="lrow" data-release="' + r.id + '"><i class="rail"></i><span class="col">' +
         '<span class="nm">' + esc(c.name) + ' <span class="rl">' + esc(c.role) + '</span></span>' +
-        '<span class="tx">' + (r.burned ? 'Burned this run.' : esc(c.fx)) + '</span></span>' +
+        '<span class="tx">' + (r.burned ? 'Burned at the last node.' : esc(c.fx)) + '</span></span>' +
         '<span class="ct">RELEASE</span></button>';
     }).join('');
     return '<div class="screen fade"><div><div class="kicker" style="margin-bottom:8px">ROSTER FULL — ' + S.rosterCap + ' SLOTS</div>' +
@@ -422,7 +425,7 @@ function payoutScreen(){
       '<button class="cta ghost" data-act="decline">KEEP THE ROSTER AS IT IS</button></div>';
   }
   var burned = S.burned.length
-    ? S.burned.map(function(id){ return '<span class="mono">' + esc(CONTACTS[id].name) + ' — unavailable until the run ends</span>'; }).join('')
+    ? S.burned.map(function(id){ return '<span class="mono">' + esc(CONTACTS[id].name) + ' — burned clearing this node</span>'; }).join('')
     : '<span class="mono">Nobody. You did it alone.</span>';
   var offer = S.offer ? CONTACTS[S.offer] : null;
   return '<div class="screen fade">' +
@@ -439,7 +442,7 @@ function payoutScreen(){
     '<div class="panel"><span class="kicker">OR PATCH THE DAMAGE</span>' +
       '<div class="rowb"><span style="font:700 17px var(--s)">REPAIR</span><span class="mono" style="color:var(--you)">+' + CONFIG.repair + ' FIREWALL</span></div>' +
       '<div class="note">Firewall now ' + S.fw + '. Nobody burns for this.</div></div>' +
-    '<div class="panel flat"><span class="kicker">BURNED THIS RUN</span>' + burned + '</div>' +
+    '<div class="panel flat"><span class="kicker">BURNED CLEARING THIS NODE</span>' + burned + '</div>' +
     '<div class="spacer"></div>' +
     (offer ? '<button class="cta" data-act="accept">TAKE ' + esc(offer.name) + '</button>' : '') +
     '<button class="cta' + (offer ? ' ghost' : '') + '" data-act="repair">REPAIR +' + CONFIG.repair + '</button>' +
@@ -450,7 +453,7 @@ function endScreen(){
   var stats = [
     ['Layers cleared', String(Math.max(0, S.layer - (S.won ? 0 : 1)))],
     ['Credits banked', S.credits + '¤'],
-    ['Contacts burned', String(S.burned.length)],
+    ['Calls made', String(S.calls)],
     ['Turns taken', String(S.runTurns)],
     ['Seed', S.seed]
   ].map(function(p, i){
