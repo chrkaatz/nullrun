@@ -1,6 +1,6 @@
 # NULLRUN — Specification
 
-**Version:** 0.4.0
+**Version:** 0.4.1
 **Status:** authoritative. The build derives from this document. If the build does anything not written here, the build is wrong or this document is incomplete. Fix the document first.
 
 ---
@@ -89,7 +89,7 @@ A complete, tense hand of decisions every turn, and a whole run in under fifteen
 - `I5` The player always has a legal action: ending the turn, breaching and bailing are always available.
 - `I6` A contact the player cannot afford costs no RAM, burns nobody, changes no state.
 - `I7` Every screen has an exit. A run terminates on the end screen, which offers another.
-- `I8` **Renewable damage.** The player always has a source of damage that does not deplete. Without it, damage per encounter is bounded by roster size and the encounter is decided on entry.
+- `I8` **Renewable resources.** Damage and firewall each have a source that does not burn: breach (FR-5) and repair (FR-12). A resource refilled only by burning contacts is bounded by roster size, which decides the run on entry rather than in play.
 
 ### Functional
 
@@ -104,7 +104,7 @@ A complete, tense hand of decisions every turn, and a whole run in under fifteen
 - `FR-9` **Trace.** 0 to 100, rising a fixed amount per turn, modified by persona; contacts may raise or lower it. At 100 alarm increments and trace resets to a carry-over. Intent values gain the alarm scale per level. Trace resets on entering a node; alarm persists for the run and also rises when an alarm node is taken.
 - `FR-10` **Route.** Eight layers. Layers 1 to 7 offer three nodes drawn without replacement from the construct set, so no two match; HUNTER joins it once alarm is above zero. A node states construct, integrity, armour, payout, and whether it raises alarm. Integrity and payout scale with layer and alarm; an alarm node pays more. No map: three offers, a short run log, the layer counter. One must be taken.
 - `FR-11` **Layer 8.** A fixed encounter against the core. No offers, no alternative route.
-- `FR-12` **Payout.** Clearing a node pays credits and offers at most one new contact from the unlocked pool, excluding those on the roster; if that pool is empty at the current tier, none is offered and the screen says so. The screen names every contact burned so far. Declining is always offered.
+- `FR-12` **Payout.** Clearing a node pays credits and offers a choice: one new contact from the unlocked pool excluding those on the roster, or repair, restoring the §T repair value to firewall. Repair is offered even when the contact pool is empty at the current tier. The screen names every contact burned. Declining both is always offered.
 - `FR-13` **Roster pressure.** The roster is capped (§T; hardware may raise it). Accepting at the cap requires releasing one, chosen from the full roster, burned or ready. Keeping the roster unchanged is always offered.
 - `FR-14` **Persona and hardware.** A run starts from a persona and its fitted hardware. The persona sets starting firewall, RAM and one run-long passive; hardware adds named contacts, RAM or roster slots. Both modify tunables and roster composition only, never rules. Changing hardware restarts the run.
 - `FR-15` **Ending.** Firewall at zero or below, or bailing, ends the run as a loss; destroying the core wins it. The end screen shows layers cleared, credits banked, contacts burned, turns taken and the seed, and offers a new run and a rerun.
@@ -128,7 +128,7 @@ A complete, tense hand of decisions every turn, and a whole run in under fifteen
 
 All balance numbers live in one `CONFIG` object at the top of the build. Changing one is always an iterate, never a rebuild.
 
-Current values: firewall 24, RAM 3, breach damage 4, roster cap 6, trace max 100, trace per turn 6, alarm carry-over 40, alarm intent scale 3, layers 8, offers per layer 3, node integrity +14% per layer and +10% per alarm level, node payout 60 flat plus 40 scaled plus 60 for an alarm node, core payout 600, unlock thresholds 400 / 1200 / 2400 credits, construct integrity 34 to 96, construct armour 0 to 3, contact cost 0 to 3.
+Current values: firewall 24, RAM 3, breach damage 4, repair 12, roster cap 6, trace max 100, trace per turn 6, alarm carry-over 40, alarm intent scale 3, layers 8, offers per layer 3, node integrity +14% per layer and +10% per alarm level, node payout 60 flat plus 40 scaled plus 60 for an alarm node, core payout 600, unlock thresholds 400 / 1200 / 2400 credits, construct integrity 34 to 96, construct armour 0 to 3, contact cost 0 to 3.
 
 ### §C Content tables
 
@@ -166,7 +166,7 @@ A rebuild is accepted only when all pass.
 - `K12` Every interactive target is at least 44px on the short edge (FR-18).
 - `K13` Accepting at the cap forces a release, never exceeding it (FR-13).
 - `K14` Contact damage never falls below 1 against armour; pierce and breach ignore armour (FR-7, FR-5).
-- `K16` **Renewable damage.** A layer-1 node is clearable by breach alone with every contact burned (I8). Regression guard: 0.3.x lost this silently and passed every other check.
+- `K16` **Renewable resources.** A layer-1 node is clearable by breach alone with every contact burned, and repair is reachable with no contact on offer (I8). Regression guard: 0.3.x lost both silently and passed every other check.
 - `K15` **Viability.** A competent scripted policy clears layer 1 and wins some runs across 200 seeds. Conformance is not playability; without this, §K passes on an unwinnable game.
 
 ### §O Open questions and known risks
@@ -189,8 +189,5 @@ A rebuild is accepted only when all pass.
 
 Older entries live in git history, under the `spec/*` tags.
 
-- `0.4.0` **Rebuild.** Added breach (FR-5), a free renewable attack, and invariant I8 requiring one. This restores what the 0.2.x free step was silently doing: the old FR-6 documented only its I6 job, so the 0.3.0 rebuild faithfully preserved that job through bail and dropped the undocumented one — leaving per-encounter damage bounded by roster size and every encounter decided on entry. I8 and K16 exist so a rebuild cannot lose it again. FR-2 and I5 amended, later FR renumbered, `O4` resolved, `O12` and `O13` recorded. A `feature` classification changing invariants and the turn contract: a rebuild under M4.
-- `0.3.3` Spec only. `O4` rewritten from measurement: the blocker was structural, and per-encounter burn — `O4`'s own fallback — changes I3 and does not make the game winnable.
-- `0.3.2` Spec only. Added `K15` after the first build passed all fourteen checks while being unwinnable: §K tested that the rules held, never that the game could be finished.
-- `0.3.1` Spec only. M5 raised to 3,000 words. FR-3 fixes an intent's value at display time, closing a gap where a mid-resolution alarm increment raised damage above the displayed value.
-- `0.3.0` **Rebuild** from the design prototype. Grid tactics cut, with movement, vision, positioning, map generation and their invariants. A visible roster of contacts that burn on use replaced the deck, so draw, discard, shuffle, hand, powers and scrub went, and card conservation became roster conservation (I3). Three node offers per layer replaced the map. Added persona and hardware, roster cap and release, armour, portrait- and touch-first.
+- `0.4.1` Payout becomes a choice: contact or repair (FR-12), restoring the utility slot the 0.3.0 rebuild dropped from the old FR-11. I8 widened from damage to resources — the bug class was never specific to damage, and firewall had the identical structure: a run-long pool refilled only by contacts that burn. Measured on 0.4.0: 194 of 200 runs died on layer 3 at mean firewall 13.
+- `0.4.0` **Rebuild.** Added breach (FR-5), a free renewable attack, and invariant I8. This restores what the 0.2.x free step was silently doing: the old FR-6 documented only its I6 job, so the 0.3.0 rebuild preserved that job through bail and dropped the undocumented one — leaving per-encounter damage bounded by roster size and every encounter decided on entry. I8 and K16 exist so a rebuild cannot lose it again. FR-2 and I5 amended, later FR renumbered. A `feature` classification changing invariants and the turn contract: a rebuild under M4.

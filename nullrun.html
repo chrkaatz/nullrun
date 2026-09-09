@@ -90,7 +90,7 @@ h1{margin:0;font:700 27px/1.08 var(--s);letter-spacing:-.02em}
 
 /* ── §T tunables ─────────────────────────────────────────── */
 var CONFIG = {
-  firewall: 24, ram: 3, breach: 4, rosterCap: 6,
+  firewall: 24, ram: 3, breach: 4, repair: 12, rosterCap: 6,
   traceMax: 100, tracePerTurn: 6, alarmCarry: 40,
   layers: 8, offers: 3,
   alarmIntentScale: 3,
@@ -286,6 +286,11 @@ function nextOffer(){
   if (!avail.length) return null;
   return pick(S.rng, avail);
 }
+function takeRepair(){
+  S.fw += CONFIG.repair;
+  S.offer = null; S.releasing = false;
+  advanceLayer();
+}
 function acceptOffer(){
   if (!S.offer) return advanceLayer();
   if (S.roster.length >= S.rosterCap){ S.releasing = true; render(); return; } /* FR-12 */
@@ -436,11 +441,15 @@ function payoutScreen(){
         '<div class="rowb"><span style="font:700 17px var(--s)">' + esc(offer.name) + '</span><span class="mono" style="color:var(--you)">' + esc(offer.role) + '</span></div>' +
         '<div class="note">' + esc(offer.fx) + '</div><span class="mono" style="font-size:11px">' + offer.cost + ' RAM</span></div>'
       : '<div class="dash">No new contact available at your unlock tier.</div>') +
+    '<div class="panel"><span class="kicker">OR PATCH THE DAMAGE</span>' +
+      '<div class="rowb"><span style="font:700 17px var(--s)">REPAIR</span><span class="mono" style="color:var(--you)">+' + CONFIG.repair + ' FIREWALL</span></div>' +
+      '<div class="note">Firewall now ' + S.fw + '. Nobody burns for this.</div></div>' +
     '<div class="panel flat"><span class="kicker">BURNED THIS RUN</span>' + burned + '</div>' +
     '<div class="spacer"></div>' +
     (offer ? '<button class="cta" data-act="accept">TAKE ' + esc(offer.name) + '</button>' : '') +
-    '<button class="cta ghost small" data-act="decline">' + (offer ? 'DECLINE AND DESCEND' : 'DESCEND') + '</button>' +
-    '<span class="keys">1 take · 2 decline</span></div>';
+    '<button class="cta' + (offer ? ' ghost' : '') + '" data-act="repair">REPAIR +' + CONFIG.repair + '</button>' +
+    '<button class="cta ghost small" data-act="decline">DECLINE AND DESCEND</button>' +
+    '<span class="keys">' + (offer ? '1 take · 2 repair · 3 decline' : '2 repair · 3 decline') + '</span></div>';
 }
 function endScreen(){
   var stats = [
@@ -486,6 +495,7 @@ app.addEventListener('click', function(e){
   if (a === 'end') return endTurn();
   if (a === 'bail') return bail();
   if (a === 'accept') return acceptOffer();
+  if (a === 'repair') return takeRepair();
   if (a === 'decline'){ S.offer = null; S.releasing = false; return advanceLayer(); }
   if (a === 'again'){ newRun(randomSeed()); return render(); }
   if (a === 'rerun'){ newRun(S.seed); return render(); }
@@ -506,7 +516,8 @@ document.addEventListener('keydown', function(e){
   if (S.screen === 'payout'){
     if (S.releasing){ if (d && d <= S.roster.length) return release(S.roster[d - 1].id); if (e.key === 'Escape'){ S.offer = null; S.releasing = false; return advanceLayer(); } return; }
     if (d === 1) return acceptOffer();
-    if (d === 2 || e.key === 'Escape'){ S.offer = null; return advanceLayer(); }
+    if (d === 2) return takeRepair();
+    if (d === 3 || e.key === 'Escape'){ S.offer = null; return advanceLayer(); }
     return;
   }
   if (S.screen === 'end'){ if (e.key === 'Enter'){ newRun(randomSeed()); render(); } }
