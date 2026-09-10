@@ -92,8 +92,8 @@ ALIAS = {'firewall': 'firewall', 'RAM': 'ram', 'breach damage': 'breach',
          'layers': 'layers', 'offers per layer': 'offers'}
 if tune and cfg:
     for label, key in ALIAS.items():
-        mm = re.search(re.escape(label) + r' (\d+)', tune.group(1))
-        if mm and key in cfg and mm.group(1) != cfg[key]:
+        mm = re.search(re.escape(label) + r' (\d+(?:\.\d+)?)', tune.group(1))
+        if mm and key in cfg and float(mm.group(1)) != float(cfg[key]):
             bad('spec-build-drift', f'§T says {label} {mm.group(1)}, CONFIG.{key} is {cfg[key]}')
 
 # ---- a version must carry its record ----------------------------------

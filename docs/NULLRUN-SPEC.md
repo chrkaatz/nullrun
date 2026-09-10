@@ -1,6 +1,6 @@
 # NULLRUN — Specification
 
-**Version:** 0.9.3
+**Version:** 0.9.4
 **Status:** authoritative. The build derives from this document. If the build does anything not written here, the build is wrong or this document is incomplete. Fix the document first.
 
 ---
@@ -128,7 +128,7 @@ A complete, tense hand of decisions every turn, and a whole run in under fifteen
 
 All balance numbers live in one `CONFIG` object at the top of the build. Changing one is always an iterate, never a rebuild.
 
-Current values: firewall 60, RAM 3, breach damage 4, breach growth 2 per layer, repair 24, roster cap 8, trace max 100, trace per turn 15, layers 8, offers per layer 3, payout 60 flat plus 1.2 per integrity, node integrity +14% per layer and +10% per alarm level, node payout 60 flat plus 40 scaled plus 60 for an alarm node, core payout 600, unlock thresholds 400 / 1200 / 2400 credits, construct integrity 34 to 96, construct armour 0 to 3, contact cost 0 to 3.
+Current values: firewall 60, RAM 3, breach damage 4, breach growth 1.5 per layer, repair 24, roster cap 8, trace max 100, trace per turn 15, layers 8, offers per layer 3, payout 60 flat plus 1.2 per integrity, node integrity +14% per layer and +10% per alarm level, node payout 60 flat plus 40 scaled plus 60 for an alarm node, core payout 600, unlock thresholds 400 / 1200 / 2400 credits, construct integrity 34 to 96, construct armour 0 to 3, contact cost 0 to 3.
 
 ### §C Content tables
 
@@ -152,7 +152,7 @@ Current values: firewall 60, RAM 3, breach damage 4, breach growth 2 per layer, 
 
 ### §K Conformance checklist
 
-A rebuild is accepted only when all pass.
+A rebuild is accepted only when all pass. Several are worded to prevent a specific past failure and must not be simplified; the reasoning for each is in `docs/conformance/` for the version that introduced it. A harness may not modify state the check depends on.
 
 - `K1` Two generators from one seed produce identical first node offers and first payout offer.
 - `K2` Across 50 runs, every offer layer shows three distinct constructs, at least one clearable with the roster then held (I2), and no two offers paying the same (FR-10).
@@ -168,16 +168,17 @@ A rebuild is accepted only when all pass.
 - `K12` Every interactive target is at least 44px on the short edge (FR-18).
 - `K13` Accepting at the cap forces a release, never exceeding it (FR-13).
 - `K14` Contact damage never falls below 1 against armour; pierce and breach ignore armour (FR-7, FR-5).
-- `K16` **Renewable resources.** A layer-1 node is clearable by breach alone with every contact burned, and repair is reachable with no contact offered (I8). Guard: 0.3.x lost both silently while passing every other check.
-- `K18` **No unsignalled dead ends.** Every offered node states its reach truthfully (FR-10, P3.1).
-- `K17` **Trace binds.** A policy that ignores reach and chases payout is ended by trace across 200 seeds, and removing trace changes outcomes materially. A clock that binds nothing is the alarm system again; one that never catches careful play is working as intended.
-- `K15` **Viability.** A competent policy wins 15% to 65% of 200 seeds, encounters average at least 2.5 turns, and under a tenth end before a turn is taken. It must enter every construct across the sample: a policy that always takes the softest node certifies a game whose other content is unreachable. A win bought by ending encounters instantly is not playability.
+- `K16` **Renewable resources.** With every contact burned, breach still reduces the construct each turn, so reach exceeds roster burst by a margin growing with the turns trace allows; repair is reachable with no contact offered (I8).
+- `K18` **Reach is stated.** Every offered node states its reach truthfully (FR-10, P3.1).
+- `K19` **Breach cannot carry.** At every layer, breach alone across the turns trace allows falls short of the softest node (FR-5).
+- `K17` **Trace binds.** A policy that ignores reach and chases payout is ended by trace across 200 seeds, and removing trace changes outcomes materially.
+- `K15` **Viability.** A competent policy wins 15% to 65% of 200 seeds, encounters average at least 2.5 turns, under a tenth end before a turn is taken, and every construct is entered across the sample.
 
 ### §O Open questions and known risks
 
 - `O1` **Roster size.** Six may be too few for combinations, or just enough for one screen.
 - `O2` Whether eight layers suits single-construct duels; five may be tighter.
-- `O3` **Settled.** Shuffled decks (0.3.0) and burn scope as the fix (0.4.0) are rejected; reasoning in git and `docs/conformance/`. The collection in FR-16 only widens the payout pool.
+- `O3` **Settled.** Shuffled decks and burn scope as the fix are rejected; see git and `docs/conformance/`.
 - `O4` Contact offers are uniform. Weighting toward missing roles may read fairer, or flatten it.
 - `O5` **Upgrades.** No path improves a contact instead of replacing it; adding one changes FR-12 and §C.
 - `O6` **Node variety.** Every layer is the same three-node shape. Rest, fixer and elite nodes are missing.
@@ -185,7 +186,7 @@ A rebuild is accepted only when all pass.
 - `O8` Whether hardware that only injects contacts matters.
 - `O9` **Persona depth.** One persona exists. Whether they unlock with credits, and whether a passive may exceed a tunable, is open.
 - `O10` **Bail semantics.** Bailing ends the run. Abandoning one encounter and continuing needs a cost rule.
-- `O11` **Breach and weak contacts.** Breach grows while contact damage does not, so by layer 6 the free action out-damages most of the roster. Contacts must earn their slot on what breach cannot do.
+- `O11` **Resolved 0.9.4.** Breach out-grew the roster and contradicted FR-5; growth cut to 1.5 and `K19` enforces the claim. Re-cutting contacts around what breach cannot do is untouched.
 - `O12` **Breach and trace.** Nothing costs trace; whether breach should is unexplored.
 
 ### Change log
