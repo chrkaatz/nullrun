@@ -11,10 +11,21 @@ import re, sys, subprocess, pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 STAGED = '--staged' in sys.argv
 
+def _prefix():
+    """Path of ROOT relative to the repo root; git refs must be repo-relative."""
+    r = subprocess.run(['git', 'rev-parse', '--show-toplevel'], cwd=ROOT,
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        return ''
+    top = pathlib.Path(r.stdout.strip()).resolve()
+    rel = ROOT.relative_to(top).as_posix()
+    return '' if rel == '.' else rel + '/'
+PREFIX = _prefix()
+
 def read(rel):
     """Staged content when linting a commit, else the working tree. '' if absent."""
     if STAGED:
-        for ref in (f':{rel}', f'HEAD:{rel}'):
+        for ref in (f':{PREFIX}{rel}', f'HEAD:{PREFIX}{rel}'):
             r = subprocess.run(['git', 'show', ref], cwd=ROOT,
                                capture_output=True, text=True)
             if r.returncode == 0:
@@ -25,8 +36,10 @@ def read(rel):
 
 def listdir(rel):
     if STAGED:
-        r = subprocess.run(['git', 'ls-files', rel], cwd=ROOT, capture_output=True, text=True)
-        return r.stdout.split()
+        r = subprocess.run(['git', 'ls-files', PREFIX + rel], cwd=ROOT,
+                           capture_output=True, text=True)
+        return [x[len(PREFIX):] if PREFIX and x.startswith(PREFIX) else x
+                for x in r.stdout.split()]
     d = ROOT / rel
     return [str(p.relative_to(ROOT)) for p in d.glob('*')] if d.exists() else []
 
