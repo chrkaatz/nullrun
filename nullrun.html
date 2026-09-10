@@ -427,10 +427,15 @@ function offersScreen(){
   var toneClass = { COMBAT:'world', HARD:'harm', QUIET:'you', CORE:'harm' };
   var nodes = S.offers.map(function(o, i){
     var c = CONSTRUCTS[o.key];
+    var reach = damageBudget(o.armour);
     return '<button class="node" data-node="' + i + '">' +
       '<span class="rowb" style="width:100%"><span class="nm">' + esc(c.name) + '</span>' +
       '<span class="chip ' + toneClass[c.tag] + '">' + esc(c.tag) + '</span></span>' +
       '<span class="note">Integrity ' + o.integrity + ' · armour ' + o.armour + '</span>' +
+      /* FR-10 / P3.1: never let the player walk into arithmetic they were not shown. */
+      '<span class="chip ' + (reach >= o.integrity ? 'you' : 'harm') + '" style="align-self:flex-start">' +
+        (reach >= o.integrity ? 'WITHIN REACH · you can bring ' + reach
+                              : 'BEYOND REACH · you can bring ' + reach + ' of ' + o.integrity) + '</span>' +
       '<span class="mono" style="font-size:11px">PAYOUT ' + o.credits + '¤ · one contact · press ' + (i + 1) + '</span></button>';
   }).join('');
   var log = S.log.length ? S.log.map(function(l){ return '<span class="mono">' + esc(l) + '</span>'; }).join('') : '<span class="mono">No layers cleared yet.</span>';

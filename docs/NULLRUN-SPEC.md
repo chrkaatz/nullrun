@@ -1,6 +1,6 @@
 # NULLRUN — Specification
 
-**Version:** 0.9.0
+**Version:** 0.9.1
 **Status:** authoritative. The build derives from this document. If the build does anything not written here, the build is wrong or this document is incomplete. Fix the document first.
 
 ---
@@ -102,7 +102,7 @@ A complete, tense hand of decisions every turn, and a whole run in under fifteen
 - `FR-7` **Construct.** Constructs have integrity and armour. Contact damage is reduced by armour to a minimum of 1 unless the contact pierces. A contact may strip armour; a construct may restore its own. Integrity at zero clears the node.
 - `FR-8` **Bail.** Available in every encounter state. Ends the run at once as a loss, banking credits earned. Guarantees I7.
 - `FR-9` **Trace.** 0 to 100, rising a fixed amount per turn, modified by persona; contacts may raise or lower it. **At 100 the run ends: you are traced.** Trace resets on entering a node, so it bounds how long one node may be worked. It is the only cost of taking a turn, and so the only thing stopping breach from grinding any construct down for free.
-- `FR-10` **Route.** Eight layers. Layers 1 to 7 offer three nodes drawn without replacement from the construct set, so no two match. A node states construct, integrity, armour and payout. Integrity scales with layer; payout scales with that node's integrity, so harder pays more. Offers in a layer must differ in payout, or the choice is not one. No map: three offers, a short run log, the layer counter. One must be taken.
+- `FR-10` **Route.** Eight layers. Layers 1 to 7 offer three nodes drawn without replacement from the construct set, so no two match. A node states construct, integrity, armour, payout, and its reach: the most damage the current roster and breach could bring against it before trace ends the node, and whether that clears it. Reach is a ceiling assuming perfect play, so beyond-reach is a guarantee of failure while within-reach is only a possibility. A node the player cannot clear must say so before it is chosen (P3.1). Integrity scales with layer; payout scales with that node's integrity, so harder pays more. Offers in a layer must differ in payout, or the choice is not one. No map: three offers, a short run log, the layer counter. One must be taken.
 - `FR-11` **Layer 8.** A fixed encounter against the core. No offers, no alternative route.
 - `FR-12` **Payout.** Clearing a node pays credits and offers a choice: one new contact from the unlocked pool excluding those held, or repair, restoring the §T repair value. A contact is permanent growth, not a replacement. Repair is offered even when the pool is empty at the current tier. Declining both is always offered.
 - `FR-13` **Roster pressure.** The roster is capped (§T; hardware may raise it). Accepting at the cap requires releasing one, chosen from the full roster. Keeping it unchanged is always offered.
@@ -162,13 +162,14 @@ A rebuild is accepted only when all pass.
 - `K6` An unaffordable contact leaves RAM, roster and construct unchanged (I6).
 - `K7` One seed and one input sequence produce identical final credits (I1).
 - `K8` End turn, breach and bail are reachable from every encounter state (I5).
-- `K9` Every contact and every intent value is readable in a greyscale screenshot (NFR-3).
+- `K9` Every contact, intent value and node reach is readable in a greyscale screenshot (NFR-3).
 - `K10` No network request is issued (NFR-1).
 - `K11` No horizontal scroll at 360px (NFR-5).
 - `K12` Every interactive target is at least 44px on the short edge (FR-18).
 - `K13` Accepting at the cap forces a release, never exceeding it (FR-13).
 - `K14` Contact damage never falls below 1 against armour; pierce and breach ignore armour (FR-7, FR-5).
 - `K16` **Renewable resources.** A layer-1 node is clearable by breach alone with every contact burned, and repair is reachable with no contact offered (I8). Guard: 0.3.x lost both silently while passing every other check.
+- `K18` **No unsignalled dead ends.** Every offered node states its reach, and no node that cannot be cleared is presented as though it can (FR-10, P3.1).
 - `K17` **Trace bites.** Trace ends some runs across 200 seeds. A clock that never strikes is the alarm system again.
 - `K15` **Viability.** A competent policy wins 15% to 65% of 200 seeds, encounters average at least 2.5 turns, and under a tenth end before a turn is taken. It must enter every construct across the sample: a policy that always takes the softest node certifies a game whose other content is unreachable. A win bought by ending encounters instantly is not playability.
 
