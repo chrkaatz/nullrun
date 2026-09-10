@@ -1,0 +1,4 @@
+#!/bin/sh
+# Lint the spec that is actually about to be committed, not the working tree.
+# Bypass deliberately with: git commit --no-verify
+exec python3 "$(git rev-parse --show-toplevel)/tools/speclint.py" --staged
