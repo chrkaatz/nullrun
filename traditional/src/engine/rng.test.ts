@@ -11,8 +11,10 @@ describe('makeRng', () => {
   })
 
   it('differs between seeds', () => {
-    const a = Array.from({ length: 20 }, () => makeRng('A').next())
-    const b = Array.from({ length: 20 }, () => makeRng('B').next())
+    const ra = makeRng('A')
+    const rb = makeRng('B')
+    const a = Array.from({ length: 20 }, () => ra.next())
+    const b = Array.from({ length: 20 }, () => rb.next())
     expect(a).not.toEqual(b)
   })
 

@@ -9,6 +9,7 @@ export const CONFIG = {
   heatPerTurn: 15,
   pressDamage: 4,
   pressGrowth: 1.5,
+  minHit: 1,
   patch: 24,
   payoutFlat: 60,
   payoutPerIntegrity: 1.2,

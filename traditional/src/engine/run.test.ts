@@ -18,12 +18,21 @@ describe('startRun', () => {
   it('is a pure function of its seed', () => {
     expect(startRun('X')).toEqual(startRun('X'))
   })
+})
 
-  it('does not mutate a state it is given', () => {
-    const a = startRun('SEED')
-    const frozen = Object.freeze({ ...a })
-    startRun('SEED')
-    expect(frozen.layer).toBe(1)
+describe('immutability', () => {
+  it('never mutates a state it is handed', () => {
+    const s = startRun('SEED')
+    const frozen = Object.freeze({
+      ...s,
+      team: Object.freeze(s.team.map(t => Object.freeze({ ...t }))),
+    })
+    const snapshot = JSON.stringify(frozen)
+    pressDamage(frozen)
+    turnsAllowed(frozen)
+    ceilingAgainst(frozen, 0)
+    ceilingAgainst(frozen, 3)
+    expect(JSON.stringify(frozen)).toBe(snapshot)
   })
 })
 

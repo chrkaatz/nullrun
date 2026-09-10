@@ -50,7 +50,7 @@ export function ceilingAgainst(state: RunState, guard: number): number {
     if (slot.spent) return n
     const op = OPERATIVES[slot.id]
     if (!op.damage) return n
-    return n + (op.pierce ? op.damage : Math.max(1, op.damage - guard))
+    return n + (op.pierce ? op.damage : Math.max(CONFIG.minHit, op.damage - guard))
   }, 0)
   return Math.round(burst + pressDamage(state) * turnsAllowed(state))
 }
