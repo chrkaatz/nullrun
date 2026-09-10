@@ -15,8 +15,9 @@ function scaleAt(layer: number): number {
 /**
  * Three distinct sentinels, priced by their own integrity so no two offers
  * cost the same, and at least one the team can actually clear (A2).
- * The achievable-node guarantee is enforced here, not hoped for: the offer
- * set is drawn once, then reordered without drawing again so determinism holds.
+ * Which sentinels are offered is a pure function of (seed, layer): the bag is
+ * drawn once and then reordered without drawing again. The ceilings are not —
+ * they track the current team, which is exactly what A16 requires them to do.
  */
 export function generateOffers(state: RunState): RunState {
   const rng = makeRng(`${state.seed}:offers:${state.layer}`)
@@ -51,11 +52,13 @@ export function generateOffers(state: RunState): RunState {
       if (offers[i].integrity < offers[e].integrity) e = i
     }
     const softened = Math.max(1, offers[e].ceiling)
-    offers[e] = {
-      ...offers[e],
-      integrity: softened,
-      payout: CONFIG.payoutFlat + Math.round(softened * CONFIG.payoutPerIntegrity),
-    }
+    // Softening lowers this node's integrity, so its payout is recomputed and
+    // may land on another offer's. Walk it down until it is distinct: the
+    // easiest node paying least is the right direction anyway.
+    const others = new Set(offers.filter((_, i) => i !== e).map(o => o.payout))
+    let payout = CONFIG.payoutFlat + Math.round(softened * CONFIG.payoutPerIntegrity)
+    while (others.has(payout)) payout--
+    offers[e] = { ...offers[e], integrity: softened, payout }
   }
 
   return { ...state, offers, screen: 'route' }

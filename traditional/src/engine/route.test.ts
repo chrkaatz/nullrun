@@ -47,6 +47,18 @@ describe('generateOffers', () => {
     generateOffers(before)
     expect(JSON.stringify(before)).toBe(snapshot)
   })
+
+  it('guarantees an achievable node even when the team can bring nothing (A2)', () => {
+    const s = generateOffers({ ...startRun('SOFT'), layer: 7, team: [] })
+    expect(s.offers).toHaveLength(CONFIG.offersPerLayer)
+    expect(s.offers.some(o => o.integrity <= o.ceiling)).toBe(true)
+    expect(new Set(s.offers.map(o => o.payout)).size).toBe(CONFIG.offersPerLayer)
+    // Softening sets integrity to exactly the ceiling, so this is observable
+    // from outside. If it ever stops holding, the case has gone vacuous and
+    // the fallback is no longer under test — fail loudly rather than quietly.
+    const softened = s.offers.filter(o => o.integrity === o.ceiling)
+    expect(softened, 'the softening fallback did not fire').toHaveLength(1)
+  })
 })
 
 describe('enterNode', () => {
@@ -67,5 +79,12 @@ describe('enterNode', () => {
     const s = enterNode(s0, 0)
     expect(s.sentinel!.shownIntent).toBeDefined()
     expect(s.sentinel!.shownDamage).toBe(s.sentinel!.shownIntent.damage)
+  })
+
+  it('does not mutate the state it is given', () => {
+    const before = generateOffers(startRun('EM'))
+    const snapshot = JSON.stringify(before)
+    enterNode(before, 0)
+    expect(JSON.stringify(before)).toBe(snapshot)
   })
 })
