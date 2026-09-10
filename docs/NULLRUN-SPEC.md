@@ -1,6 +1,6 @@
 # NULLRUN — Specification
 
-**Version:** 0.8.0
+**Version:** 0.9.0
 **Status:** authoritative. The build derives from this document. If the build does anything not written here, the build is wrong or this document is incomplete. Fix the document first.
 
 ---
@@ -189,10 +189,6 @@ A rebuild is accepted only when all pass.
 
 ### Change log
 
-Older entries live in git history, under the `spec/*` tags.
-
-- `0.8.0` **Rebuild.** Restores two guarantees 0.5.0 destroyed with alarm. Payout had lost its only per-node term, so all three offers paid identically in 100% of 700 layers — a fake choice; payout now scales with the node's own integrity (FR-10). `I2` was deleted for mentioning alarm, taking the guarantee of a takeable node with it: offers draw three from four constructs, so a quarter of layers offered nothing clearable. `I2` returns as a function, enforced in generation. CORPSEC SWEEP, unclearable at every layer by any roster, cut to 95. K15 now requires the policy to enter every construct; it had entered two in 200 runs, which is why none of this was caught. M2 gains the rule this is the third instance of.
-- `0.7.1` Art for nine contacts and five constructs (§C), embedded as data URIs. Recorded in §C because it would otherwise vanish at the next rebuild.
-- `0.7.0` **Rebuild.** Breach grows per layer (FR-5); firewall, repair, integrity and intents retuned with it. Damage per node had been capped at 57 while layer 6's softest node reached 58. K15 was tightened first, since scaling breach alone passed it by collapsing encounters to one turn.
-- `0.6.0` **Rebuild.** Burn narrowed to node-scoped (I3, FR-4, P3.3): four contacts burned per node against one replaced.
-- `0.5.0` **Rebuild.** Alarm cut after firing in 0% of runs across three builds. Trace replaces it: at 100 the run ends (FR-9).
+Moved to `docs/CHANGELOG.md`. It is history, not authority — no rebuild reads it, and keeping
+it here spent the M5 budget on the record instead of the product. A lesson worth keeping is
+promoted into M1–M5, an invariant, a requirement, §K or §O; the narrative stays in the log.

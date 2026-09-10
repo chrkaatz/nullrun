@@ -71,12 +71,32 @@ roster against them explicitly.
 - No motion the user did not trigger except the trace meter at critical level, all animation
   suppressed under `prefers-reduced-motion` (NFR-4).
 
+## Where the record lives
+
+Three places, and they are not interchangeable:
+
+- `docs/NULLRUN-SPEC.md` — authority. Only Part II and Part III bind the build (M1), and M5
+  caps it at 3,000 words. Nothing else belongs here.
+- `docs/CHANGELOG.md` — history. What changed each version and why. No rebuild reads it, so
+  it carries no budget. **A lesson learned in a version is promoted into the spec** — M1–M5,
+  an invariant, a requirement, §K or §O — and only its narrative stays in the log.
+- `docs/conformance/<version>.md` — evidence. The §K run for one build, plus the measurements
+  behind any tuning decision. Immutable once written; a later version gets a new file.
+
+Spec and build states are tagged `spec/<version>` and `build/<version>`. A build that fails
+§K is tagged `-unaccepted`.
+
+Keeping history inside the spec is what the 0.9.0 split fixed: the M5 budget is meant to force
+cuts to the product, and instead it silently ate the record — entries were compressed every
+version and 0.1.0–0.2.1 vanished after 0.4.0. `0.3.1` had already diagnosed this and responded
+by raising the budget, which treated a structural problem as a number.
+
 ## Running and verifying
 
 Open the built file directly: `open nullrun.html`. There is no dev server, and adding one
 would violate the self-contained premise.
 
-Verification is the §K conformance checklist (K1–K14), not a test framework. A rebuild is
+Verification is the §K conformance checklist, not a test framework. A rebuild is
 accepted only when all pass. Several are statistical (50 runs for node offers, 500 turns for
 roster conservation), so they are run as throwaway harness scripts against the game's own
 functions rather than as a committed suite. Do not claim a rebuild is done without running
