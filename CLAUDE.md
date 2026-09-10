@@ -91,6 +91,28 @@ cuts to the product, and instead it silently ate the record — entries were com
 version and 0.1.0–0.2.1 vanished after 0.4.0. `0.3.1` had already diagnosed this and responded
 by raising the budget, which treated a structural problem as a number.
 
+## Spec linting
+
+`tools/speclint.py` checks the spec against itself and against the build. It runs
+automatically on every commit via `.githooks/pre-commit` (wired with `core.hooksPath`, so it
+is versioned and travels with the repo). Bypass deliberately with `git commit --no-verify`.
+
+    python3 tools/speclint.py            # working tree
+    python3 tools/speclint.py --staged   # what is about to be committed (what the hook runs)
+
+It checks: duplicate ids · dense numbering · references that resolve to nothing · invariants
+guarded by no §K check · the M5 word budget, read from M5's own text · §T against the build's
+`CONFIG` · and that the current version has both a CHANGELOG entry and a conformance record.
+
+**Numbering gaps are the point.** This project's signature failure is a requirement being cut
+and its function going quietly with it — the free step, repair, `I2`. The linter cannot know
+an invariant *should* exist, but a hole where one used to be is visible, and that hole is the
+warning. Replayed against history it flags `I gap [2]` at 0.7.1, one version before playtesting
+found the unwinnable layers that absence caused.
+
+**What it will not catch:** a reference that resolves to the *wrong* thing rather than to
+nothing. `K14` citing `FR-6` after a renumber is valid and wrong; only reading catches that.
+
 ## Running and verifying
 
 Open the built file directly: `open nullrun.html`. There is no dev server, and adding one
