@@ -1,6 +1,6 @@
 # NULLRUN — Specification
 
-**Version:** 0.9.1
+**Version:** 0.9.2
 **Status:** authoritative. The build derives from this document. If the build does anything not written here, the build is wrong or this document is incomplete. Fix the document first.
 
 ---
@@ -169,24 +169,24 @@ A rebuild is accepted only when all pass.
 - `K13` Accepting at the cap forces a release, never exceeding it (FR-13).
 - `K14` Contact damage never falls below 1 against armour; pierce and breach ignore armour (FR-7, FR-5).
 - `K16` **Renewable resources.** A layer-1 node is clearable by breach alone with every contact burned, and repair is reachable with no contact offered (I8). Guard: 0.3.x lost both silently while passing every other check.
-- `K18` **No unsignalled dead ends.** Every offered node states its reach, and no node that cannot be cleared is presented as though it can (FR-10, P3.1).
-- `K17` **Trace bites.** Trace ends some runs across 200 seeds. A clock that never strikes is the alarm system again.
+- `K18` **No unsignalled dead ends.** Every offered node states its reach truthfully (FR-10, P3.1).
+- `K17` **Trace binds.** A policy that ignores reach and chases payout is ended by trace across 200 seeds, and removing trace changes outcomes materially. A clock that binds nothing is the alarm system again; one that never catches careful play is working as intended.
 - `K15` **Viability.** A competent policy wins 15% to 65% of 200 seeds, encounters average at least 2.5 turns, and under a tenth end before a turn is taken. It must enter every construct across the sample: a policy that always takes the softest node certifies a game whose other content is unreachable. A win bought by ending encounters instantly is not playability.
 
 ### §O Open questions and known risks
 
-- `O1` **Roster size.** Six may be too few for real combinations, or just enough for one screen.
+- `O1` **Roster size.** Six may be too few for combinations, or just enough for one screen.
 - `O2` Whether eight layers suits single-construct duels. Five may be tighter.
 - `O3` **Settled.** Shuffled decks (0.3.0) and burn scope as the fix (0.4.0) are both rejected; reasoning in git and `docs/conformance/`. The collection in FR-16 only widens the payout pool.
 - `O5` Contact offers are uniform. Weighting toward missing roles may read fairer, or flatten identity.
-- `O6` **Upgrades.** No path improves a contact instead of replacing it. Adding one changes FR-12 and §C: a rebuild.
-- `O7` **Node variety.** Every layer offers the same three-node shape. Rest, fixer and elite nodes are missing.
+- `O6` **Upgrades.** No path improves a contact instead of replacing it. Adding one changes FR-12 and §C.
+- `O7` **Node variety.** Every layer is the same three-node shape. Rest, fixer and elite nodes are missing.
 - `O8` Whether trace now supplies real pressure, or breach only lengthens fights without tightening them.
-- `O9` Whether hardware that only injects contacts and numbers is interesting.
-- `O10` **Persona depth.** One persona exists. Whether personas unlock with credits, and whether a passive can exceed a tunable, is open.
-- `O11` **Bail semantics.** Bailing ends the run. Abandoning one encounter and continuing needs a rule for what that costs.
-- `O12` **Breach and weak contacts.** Breach grows while contact damage does not, so by layer 6 the free action out-damages most of the roster. Contacts must earn their slot on what breach cannot do. The likeliest next structural failure.
-- `O13` **Breach and trace.** Nothing costs trace today. Whether breach should is unexplored.
+- `O9` Whether hardware that only injects contacts is interesting.
+- `O10` **Persona depth.** One persona exists. Whether they unlock with credits, and whether a passive can exceed a tunable, is open.
+- `O11` **Bail semantics.** Bailing ends the run. Abandoning one encounter and continuing needs a rule for the cost.
+- `O12` **Breach and weak contacts.** Breach grows while contact damage does not, so by layer 6 the free action out-damages most of the roster. Contacts must earn their slot on what breach cannot do. The likeliest next failure.
+- `O13` **Breach and trace.** Nothing costs trace. Whether breach should is unexplored.
 
 ### Change log
 
