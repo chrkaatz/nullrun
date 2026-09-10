@@ -23,6 +23,25 @@ Tile boxes were detected from the sheet's brightness profile, not eyeballed:
 | hunter | 483,582,924,725 |
 | archon | 948,582,1378,725 |
 
+## Second sheet (tiers 1–3), 2752×1536
+
+| id | box on sheet (x0,y0,x1,y1) |
+|---|---|
+| ninth | 92,232,906,673 |
+| cardinal | 969,232,1782,673 |
+| wren | 1845,232,2660,673 |
+| saint | 555,810,1368,1251 |
+| dolorosa | 1412,810,2225,1251 |
+
+Row 1 detected cleanly and uniformly (814×441). Row 2's boxes were clipped by the detector
+where the glitch bands go dark, so its left/top edges were taken from detection and the size
+from row 1's nominal tile.
+
+**Saturation matched to the first sheet.** The second sheet rendered greyer: mean HSL
+saturation 24–36 against the first sheet's 47–52, at the same hue (~183). Each tile was
+corrected per-tile toward 48 — `magick -modulate 100,<factor>,100`, factors 1.00 to 2.01 —
+before encoding. Hue was already correct and was not touched.
+
 Encoding: contacts `cwebp -q 70 -resize 176 0`, constructs `cwebp -q 58 -resize 400 0`.
 Chosen against NFR-7: the whole set is 57 KB raw, 76 KB as base64, taking the build from
 33 KB to 92 KB of the 150 KB budget.

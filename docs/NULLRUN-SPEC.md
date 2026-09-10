@@ -1,6 +1,6 @@
 # NULLRUN — Specification
 
-**Version:** 0.9.4
+**Version:** 0.9.5
 **Status:** authoritative. The build derives from this document. If the build does anything not written here, the build is wrong or this document is incomplete. Fix the document first.
 
 ---
@@ -146,7 +146,7 @@ Current values: firewall 60, RAM 3, breach damage 4, breach growth 1.5 per layer
 - tier 2: CARDINAL rigger, WREN infiltrator
 - tier 3: SAINT ex-corpsec, DOLOROSA unknown
 
-**Art.** One image per contact and construct, keyed by id, embedded as a data URI so NFR-1 holds. A missing key falls back to text — tiers 2 and 3 have none. Art never carries state alone (NFR-3).
+**Art.** One image per contact and construct, keyed by id, embedded as a data URI so NFR-1 holds. A missing key falls back to text. Art never carries state alone (NFR-3).
 
 **Hardware.** HAMMER-4 adds MOLE and HATCHET · SPLIT REFLEX +1 RAM · COLD WALLET +1 roster slot. Fitted at the loadout screen.
 
