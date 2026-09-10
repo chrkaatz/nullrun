@@ -1,6 +1,6 @@
 # NULLRUN — Specification
 
-**Version:** 0.9.2
+**Version:** 0.9.3
 **Status:** authoritative. The build derives from this document. If the build does anything not written here, the build is wrong or this document is incomplete. Fix the document first.
 
 ---
@@ -122,7 +122,7 @@ A complete, tense hand of decisions every turn, and a whole run in under fifteen
 - `NFR-5` **Portrait first.** Designed for 390px, playable from 360px up. The roster wraps rather than scrolling off screen. No horizontal page scroll at any width.
 - `NFR-6` **No frame loop.** Render on state change only. Idle cost is zero.
 - `NFR-7` **Size budget.** Under 1,600 lines and under 150 KB, embedded art included — it is the largest single cost.
-- `NFR-9` **Presentation.** Corporate system software the player does not own: flat panels, soft radii, generous spacing, one accent. Contact faces are banded — role and cost, image window, name, effect text.
+- `NFR-8` **Presentation.** Corporate system software the player does not own: flat panels, soft radii, generous spacing, one accent. Contact faces are banded — role and cost, image window, name, effect text.
 
 ### §T Tunables
 
@@ -161,7 +161,7 @@ A rebuild is accepted only when all pass.
 - `K5` Firewall only ever falls by the value displayed on that turn's intent (I4).
 - `K6` An unaffordable contact leaves RAM, roster and construct unchanged (I6).
 - `K7` One seed and one input sequence produce identical final credits (I1).
-- `K8` End turn, breach and bail are reachable from every encounter state (I5).
+- `K8` End turn, breach and bail are reachable in any encounter state, and every screen offers a way onward (I5, I7).
 - `K9` Every contact, intent value and node reach is readable in a greyscale screenshot (NFR-3).
 - `K10` No network request is issued (NFR-1).
 - `K11` No horizontal scroll at 360px (NFR-5).
@@ -176,17 +176,17 @@ A rebuild is accepted only when all pass.
 ### §O Open questions and known risks
 
 - `O1` **Roster size.** Six may be too few for combinations, or just enough for one screen.
-- `O2` Whether eight layers suits single-construct duels. Five may be tighter.
-- `O3` **Settled.** Shuffled decks (0.3.0) and burn scope as the fix (0.4.0) are both rejected; reasoning in git and `docs/conformance/`. The collection in FR-16 only widens the payout pool.
-- `O5` Contact offers are uniform. Weighting toward missing roles may read fairer, or flatten identity.
-- `O6` **Upgrades.** No path improves a contact instead of replacing it. Adding one changes FR-12 and §C.
-- `O7` **Node variety.** Every layer is the same three-node shape. Rest, fixer and elite nodes are missing.
-- `O8` Whether trace now supplies real pressure, or breach only lengthens fights without tightening them.
-- `O9` Whether hardware that only injects contacts is interesting.
-- `O10` **Persona depth.** One persona exists. Whether they unlock with credits, and whether a passive can exceed a tunable, is open.
-- `O11` **Bail semantics.** Bailing ends the run. Abandoning one encounter and continuing needs a rule for the cost.
-- `O12` **Breach and weak contacts.** Breach grows while contact damage does not, so by layer 6 the free action out-damages most of the roster. Contacts must earn their slot on what breach cannot do. The likeliest next failure.
-- `O13` **Breach and trace.** Nothing costs trace. Whether breach should is unexplored.
+- `O2` Whether eight layers suits single-construct duels; five may be tighter.
+- `O3` **Settled.** Shuffled decks (0.3.0) and burn scope as the fix (0.4.0) are rejected; reasoning in git and `docs/conformance/`. The collection in FR-16 only widens the payout pool.
+- `O4` Contact offers are uniform. Weighting toward missing roles may read fairer, or flatten it.
+- `O5` **Upgrades.** No path improves a contact instead of replacing it; adding one changes FR-12 and §C.
+- `O6` **Node variety.** Every layer is the same three-node shape. Rest, fixer and elite nodes are missing.
+- `O7` Whether trace now supplies real pressure, or breach only lengthens fights without tightening them.
+- `O8` Whether hardware that only injects contacts matters.
+- `O9` **Persona depth.** One persona exists. Whether they unlock with credits, and whether a passive may exceed a tunable, is open.
+- `O10` **Bail semantics.** Bailing ends the run. Abandoning one encounter and continuing needs a cost rule.
+- `O11` **Breach and weak contacts.** Breach grows while contact damage does not, so by layer 6 the free action out-damages most of the roster. Contacts must earn their slot on what breach cannot do.
+- `O12` **Breach and trace.** Nothing costs trace; whether breach should is unexplored.
 
 ### Change log
 
