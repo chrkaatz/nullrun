@@ -11,6 +11,7 @@ export const CONFIG = {
   pressGrowth: 1.5,
   minHit: 1,
   patch: 24,
+  logLines: 4,
   payoutFlat: 60,
   payoutPerIntegrity: 1.2,
   corePayout: 600,

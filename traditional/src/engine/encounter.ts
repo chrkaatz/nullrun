@@ -1,7 +1,12 @@
 import { CONFIG } from './config'
 import { OPERATIVES, SENTINELS } from './content'
-import { pressDamage } from './run'
+import { mitigate, pressDamage } from './run'
 import type { OperativeId, RunState } from './types'
+
+/** Prepend a log line, dropping empties so a silent turn leaves no blank row. */
+function logged(state: RunState, note: string): readonly string[] {
+  return note ? [note, ...state.log].slice(0, CONFIG.logLines) : state.log
+}
 
 export function canCall(state: RunState, id: OperativeId): boolean {
   if (state.screen !== 'encounter' || !state.sentinel) return false
@@ -20,7 +25,7 @@ export function call(state: RunState, id: OperativeId): RunState {
   const notes: string[] = []
 
   if (op.damage !== undefined) {
-    const dealt = op.pierce ? op.damage : Math.max(CONFIG.minHit, op.damage - guard)
+    const dealt = mitigate(op, guard)
     integrity -= dealt
     notes.push(`${op.name} hits for ${dealt}.`)
   }
@@ -44,7 +49,7 @@ export function call(state: RunState, id: OperativeId): RunState {
     spentThisNode: [...state.spentThisNode, id],
     callsMade: state.callsMade + 1,
     sentinel: { ...sent, integrity: Math.max(0, integrity), guard },
-    log: [notes.join(' '), ...state.log].slice(0, 4),
+    log: logged(state, notes.join(' ')),
   }
   return integrity <= 0 ? clearNode(next) : next
 }
@@ -61,7 +66,7 @@ export function press(state: RunState): RunState {
     ...state,
     pressedThisTurn: true,
     sentinel: { ...state.sentinel, integrity: Math.max(0, integrity) },
-    log: [`You press for ${dealt}.`, ...state.log].slice(0, 4),
+    log: logged(state, `You press for ${dealt}.`),
   }
   return integrity <= 0 ? clearNode(next) : next
 }
@@ -71,7 +76,7 @@ export function endTurn(state: RunState): RunState {
   const heat = state.heat + CONFIG.heatPerTurn
   if (heat >= CONFIG.heatMax) {
     return { ...state, heat: CONFIG.heatMax, screen: 'end', won: false,
-             log: ['HEAT COMPLETE. They have you.', ...state.log].slice(0, 4) }
+             log: logged(state, 'HEAT COMPLETE. They have you.') }
   }
 
   const sent = state.sentinel
@@ -87,7 +92,7 @@ export function endTurn(state: RunState): RunState {
   }
   if (integrity <= 0) {
     return { ...state, heat, integrity: 0, screen: 'end', won: false,
-             log: [notes.join(' '), ...state.log].slice(0, 4) }
+             log: logged(state, notes.join(' ')) }
   }
 
   const defs = SENTINELS[sent.id].intents
@@ -101,7 +106,7 @@ export function endTurn(state: RunState): RunState {
     ram: state.ramMax,
     pressedThisTurn: false,
     sentinel: { ...sent, guard, intentIndex: idx, shownIntent: shown, shownDamage: shown.damage },
-    log: [notes.join(' '), ...state.log].slice(0, 4),
+    log: logged(state, notes.join(' ')),
   }
 }
 

@@ -1,7 +1,7 @@
 import { CONFIG } from './config'
 import { OPERATIVES, STARTING_TEAM } from './content'
 import { makeRng } from './rng'
-import type { RunState } from './types'
+import type { Operative, RunState } from './types'
 
 export function startRun(seed: string): RunState {
   const s = seed.toUpperCase()
@@ -40,6 +40,12 @@ export function turnsAllowed(_state: RunState): number {
   return Math.floor(CONFIG.heatMax / CONFIG.heatPerTurn)
 }
 
+/** A12: mitigation never reduces a hit to nothing; pierce ignores guard entirely. */
+export function mitigate(op: Operative, guard: number): number {
+  if (op.damage === undefined) return 0
+  return op.pierce ? op.damage : Math.max(CONFIG.minHit, op.damage - guard)
+}
+
 /**
  * The most damage this team could bring against `guard` before heat ends the
  * node: every unspent operative once, plus a press every allowed turn.
@@ -50,7 +56,7 @@ export function ceilingAgainst(state: RunState, guard: number): number {
     if (slot.spent) return n
     const op = OPERATIVES[slot.id]
     if (!op.damage) return n
-    return n + (op.pierce ? op.damage : Math.max(CONFIG.minHit, op.damage - guard))
+    return n + mitigate(op, guard)
   }, 0)
   return Math.round(burst + pressDamage(state) * turnsAllowed(state))
 }

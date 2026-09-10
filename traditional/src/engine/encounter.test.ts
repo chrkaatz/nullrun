@@ -3,7 +3,7 @@ import { startRun, pressDamage } from './run'
 import { generateOffers, enterNode } from './route'
 import { call, press, endTurn, canCall } from './encounter'
 import { CONFIG } from './config'
-import { OPERATIVES } from './content'
+import { OPERATIVES, SENTINELS } from './content'
 
 const inEncounter = (seed = 'E') => enterNode(generateOffers(startRun(seed)), 0)
 
@@ -87,8 +87,8 @@ describe('endTurn', () => {
   it('advances to the next intent and freezes its damage', () => {
     const s0 = { ...inEncounter('SWEEPY'), integrity: 999 }
     const s = endTurn(s0)
-    if (s.screen === 'encounter') {
-      expect(s.sentinel!.shownDamage).toBe(s.sentinel!.shownIntent.damage)
-    }
+    expect(s.screen, 'the turn ended the run — this case no longer exercises the intent advance').toBe('encounter')
+    expect(s.sentinel!.shownIntent).toBe(SENTINELS[s.sentinel!.id].intents[s.sentinel!.intentIndex])
+    expect(s.sentinel!.shownDamage).toBe(s.sentinel!.shownIntent.damage)
   })
 })
