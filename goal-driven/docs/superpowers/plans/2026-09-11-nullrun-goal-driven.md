@@ -421,6 +421,10 @@ declaration. A criterion that expects to pass everything is legal here and caugh
 // Structural helpers. Contract states are JSON-serializable, so JSON is the whole story.
 
 export function stableStringify(x) {
+  // JSON.stringify collapses every non-finite number to "null", which would make NaN and null
+  // compare equal — and deepEqual is what A1 compares a run against its replay with. '#' cannot
+  // begin any JSON fragment the rest of this function emits, so these tokens cannot collide.
+  if (typeof x === 'number' && !Number.isFinite(x)) return '#' + String(x);
   if (x === null || typeof x !== 'object') return JSON.stringify(x);
   if (Array.isArray(x)) return '[' + x.map(stableStringify).join(',') + ']';
   const keys = Object.keys(x).sort();
@@ -437,7 +441,18 @@ export function clone(x) {
 
 // Throws if a value cannot survive a JSON round trip unchanged. The contract requires it, and a
 // violation here is the cheapest possible explanation for a mysterious determinism failure.
+// Names the path to the offending value: an unattended loop's only input is this message.
 export function assertSerializable(x, label) {
+  const bad = [];
+  (function walk(v, path) {
+    if (typeof v === 'number' && !Number.isFinite(v)) { bad.push(path || '(root)'); return; }
+    if (v === null || typeof v !== 'object') return;
+    if (Array.isArray(v)) { v.forEach((e, i) => walk(e, `${path}[${i}]`)); return; }
+    for (const k of Object.keys(v)) walk(v[k], path ? `${path}.${k}` : k);
+  })(x, '');
+  if (bad.length) {
+    throw new Error(`${label} holds non-finite numbers at: ${bad.slice(0, 5).join(', ')}`);
+  }
   const round = JSON.parse(JSON.stringify(x));
   if (!deepEqual(x, round)) {
     throw new Error(`${label} is not JSON-serializable without loss`);
@@ -580,7 +595,7 @@ export default {
           if (!legalKeys.has(key)) illegal.push({ type: 'take', id: o.id });
         }
         for (const t of ['call', 'free', 'end', 'take', 'release', 'onward', 'bail']) {
-          if (![...legalKeys].some(k => k.startsWith(t + '/'))) illegal.push({ type: t });
+          if (!legalKeys.has(t + '/')) illegal.push({ type: t });
         }
 
         for (const action of illegal) {
@@ -816,14 +831,17 @@ export function policy(oracle, state) {
   if (!legal || legal.length === 0) return null;
   const v = oracle.view(state);
 
-  // At a choice point, take the hardest node that is advertised as achievable. Falls back to the
-  // whole offer list if none is — a competent player still has to move.
+  // At a choice point, take the hardest node that is advertised as achievable — that is where the
+  // payout is. When NOTHING is achievable a competent player still has to move, and takes the
+  // softest: ranking the fallback by descending reach would make the policy choose the worst
+  // option available, and A13, A15 and A17 are all measured under it.
   if (v.screen === 'offers') {
     const offers = oracle.allOffers(state);
     const pool = offers.filter(o => o.achievable);
-    const ranked = (pool.length ? pool : offers)
-      .slice()
-      .sort((a, b) => b.reach - a.reach || String(a.id).localeCompare(String(b.id)));
+    const byId = (a, b) => String(a.id).localeCompare(String(b.id));
+    const ranked = pool.length
+      ? pool.slice().sort((a, b) => b.reach - a.reach || byId(a, b))
+      : offers.slice().sort((a, b) => a.reach - b.reach || byId(a, b));
     for (const o of ranked) {
       const take = legal.find(a => a.type === 'take' && a.id === o.id);
       if (take) return take;
