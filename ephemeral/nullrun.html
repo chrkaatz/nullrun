@@ -31,6 +31,7 @@ h1{margin:0;font:700 27px/1.08 var(--s);letter-spacing:-.02em}
 .mono{font:400 11.5px/1.5 var(--m);color:var(--dim)}
 .note{font:400 12px/1.55 var(--s);color:var(--dim)}
 .dash{padding:12px 14px;border-radius:14px;border:1px dashed rgba(255,255,255,.14);font:400 11.5px/1.5 var(--s);color:var(--dim)}
+.brief{padding:10px 13px;border-left:2px solid var(--you);font:400 12.5px/1.5 var(--s);color:var(--ink)}
 .cta{width:100%;min-height:54px;border:none;border-radius:14px;background:var(--you);color:#06110f;font:700 15px/1 var(--s);letter-spacing:.01em}
 .cta.ghost{background:transparent;border:1px solid rgba(255,255,255,.16);color:var(--ink);font-weight:500}
 .cta.small{min-height:48px;font-size:14px}
@@ -415,6 +416,9 @@ function loadoutScreen(){
   }).join('<div class="hr"></div>');
   return '<div class="screen fade">' +
     '<div><div class="kicker" style="margin-bottom:8px">PRE-RUN / TEAM</div><h1>Who are you<br>taking in?</h1></div>' +
+    '<div class="brief">A turn-based deckbuilder where your deck is people, not software. You take a roster ' +
+      CONFIG.layers + ' layers down a dead arcology toward its core; everyone you call is burned until the next ' +
+      'node, and the system always shows what it will do to you a full turn before it does it.</div>' +
     '<div class="panel"><div class="rowb"><span style="font:700 17px var(--s)">' + PERSONA.name + '</span>' +
       '<span class="mono" style="color:var(--you)">' + PERSONA.role + '</span></div>' +
       '<div class="note">' + PERSONA.passive + '</div>' +
@@ -457,6 +461,7 @@ function encounterScreen(){
   var crit = S.trace >= CONFIG.traceMax * 0.75;
   var cards = S.roster.map(function(r){ return cardHtml(r); }).join('');
   return '<div class="screen fade" style="gap:11px">' +
+    '<div class="brief">Call anyone you can afford, breach once for free, then end the turn and take the intent shown.</div>' +
     '<div class="rowb"><span style="font:700 19px var(--s)">' + esc(con.name) + '</span>' +
       '<span class="mono" style="font-size:12px">' + con.integrity + ' / ' + con.max + '</span></div>' +
     '<div class="meter"><i style="width:' + pct + '%;background:var(--world)"></i></div>' +

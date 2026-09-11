@@ -1,6 +1,6 @@
 # NULLRUN — Specification
 
-**Version:** 0.9.5
+**Version:** 0.9.6
 **Status:** authoritative. The build derives from this document. If the build does anything not written here, the build is wrong or this document is incomplete. Fix the document first.
 
 ---
@@ -109,7 +109,7 @@ A complete, tense hand of decisions every turn, and a whole run in under fifteen
 - `FR-14` **Persona and hardware.** A run starts from a persona and its fitted hardware. The persona sets starting firewall, RAM and one passive; hardware adds contacts, RAM or roster slots. Both modify tunables and roster only, never rules. Changing hardware restarts the run.
 - `FR-15` **Ending.** Firewall at zero, trace at full, or bailing ends the run as a loss; destroying the core wins it. The end screen shows layers cleared, credits banked, calls made, turns taken and the seed, and offers a new run and a rerun.
 - `FR-16` **Collection.** Credits accumulate across runs and unlock further contacts at fixed thresholds. Storage is local; losing it degrades to a fresh collection and never blocks play.
-- `FR-17` **Screens.** Exactly five: loadout, offers, encounter, payout, end. Every transition is one tap. Releasing is a state of payout, not a sixth screen.
+- `FR-17` **Screens.** Exactly five: loadout, offers, encounter, payout, end. Every transition is one tap. Releasing is a state of payout, not a sixth screen. The loadout says in two sentences what the game is; the encounter restates a turn in one line.
 - `FR-18` **Input.** Touch first, one-handed. Targets are at least 44px on the short edge, each screen's primary action in thumb reach at the bottom. Keyboard mirrors everything: digits select, B breaches, enter ends the turn, escape bails or declines.
 - `FR-19` **Seeding.** The seed shows in the top bar at all times and is enterable at the loadout screen.
 
@@ -191,6 +191,6 @@ A rebuild is accepted only when all pass. Several are worded to prevent a specif
 
 ### Change log
 
-Moved to `docs/CHANGELOG.md`. It is history, not authority — no rebuild reads it, and keeping
-it here spent the M5 budget on the record instead of the product. A lesson worth keeping is
-promoted into M1–M5, an invariant, a requirement, §K or §O; the narrative stays in the log.
+Moved to `docs/CHANGELOG.md`. History, not authority: no rebuild reads it. A lesson worth
+keeping is promoted into M1–M5, an invariant, a requirement, §K or §O; the narrative stays
+in the log.
