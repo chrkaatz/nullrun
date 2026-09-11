@@ -8,7 +8,7 @@ const ROUTE_IDS = Object.values(SENTINELS)
   .filter(s => s.tag !== 'CORE')
   .map(s => s.id)
 
-function scaleAt(layer: number): number {
+export function scaleAt(layer: number): number {
   return 1 + (layer - 1) * CONFIG.layerScale
 }
 

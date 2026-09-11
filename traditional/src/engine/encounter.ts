@@ -40,7 +40,8 @@ export function call(state: RunState, id: OperativeId): RunState {
     ...state,
     integrity: playerIntegrity,
     heat,
-    ram: state.ram - op.cost + (op.refund ?? 0),
+    // A3/A11: a refund returns RAM, it never creates it above the declared max.
+    ram: Math.min(state.ramMax, state.ram - op.cost + (op.refund ?? 0)),
     team: state.team.map(t => (t.id === id ? { ...t, spent: true } : t)),
     spentThisNode: [...state.spentThisNode, id],
     callsMade: state.callsMade + 1,

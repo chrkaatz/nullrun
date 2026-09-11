@@ -25,6 +25,16 @@ describe('call', () => {
     expect(twice).toEqual({ ...once, ram: 9 })
   })
 
+  it('never lets a refund push RAM above its declared max (A3, A11)', () => {
+    // wren costs 0 and refunds 1, so calling it on a full tank creates RAM out
+    // of nothing. No scripted policy reaches this — they spend big hitters
+    // first — but a player clicking wren on a fresh turn does.
+    const s0 = { ...inEncounter(), team: [{ id: 'wren', spent: false }] }
+    expect(s0.ram).toBe(s0.ramMax)
+    const s = call(s0, 'wren')
+    expect(s.ram).toBeLessThanOrEqual(s.ramMax)
+  })
+
   it('an unaffordable operative changes nothing at all (A5)', () => {
     const s0 = { ...inEncounter(), ram: 0 }
     const costly = s0.team.find(t => OPERATIVES[t.id].cost > 0)!.id

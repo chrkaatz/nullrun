@@ -28,6 +28,20 @@ export type RunSummary = {
   sentinelsSeen: string[]
   callsMade: number
   teamSize: number
+  /** A3: counts of accounting violations seen while the run was played. */
+  conservation: Conservation
+}
+
+/**
+ * A3 asks that nothing is silently created, duplicated or destroyed. Counting
+ * violations as the run plays is the only way to see them — a summary taken at
+ * the end cannot show a resource that went up and came back down.
+ */
+export type Conservation = {
+  overRamMax: number
+  duplicateTeam: number
+  overTeamCap: number
+  creditsFell: number
 }
 
 /**
@@ -44,6 +58,18 @@ export function playRun(
   const seen: string[] = []
   let encounters = 0, encounterTurns = 0, instant = 0, steps = 0
   let inEncounter = false
+  const conservation: Conservation = {
+    overRamMax: 0, duplicateTeam: 0, overTeamCap: 0, creditsFell: 0,
+  }
+  let credits = 0
+
+  const audit = () => {
+    if (s.ram > s.ramMax) conservation.overRamMax++
+    if (new Set(s.team.map(t => t.id)).size !== s.team.length) conservation.duplicateTeam++
+    if (s.team.length > cfg.teamCap) conservation.overTeamCap++
+    if (s.credits < credits) conservation.creditsFell++
+    credits = s.credits
+  }
 
   // Encounter bookkeeping lives on the screen's edges, so every encounter is
   // counted however it was entered (route or the core) and however it ended
@@ -63,6 +89,7 @@ export function playRun(
 
   while (s.screen !== 'end' && steps < 20_000) {
     sync()
+    audit()
     steps++
     if (s.screen === 'route') {
       const indexed = s.offers.map((o, i) => ({ o, i }))
@@ -102,7 +129,11 @@ export function playRun(
       continue
     }
   }
+  // A run that hits the cap would otherwise be reported as an ordinary loss and
+  // fold a fabricated data point into every statistic this task produces.
+  if (steps >= 20_000) throw new Error(`run ${seed} (${policy}) did not terminate`)
   sync()
+  audit()
 
   return {
     won: s.won,
@@ -116,13 +147,16 @@ export function playRun(
     sentinelsSeen: seen,
     callsMade: s.callsMade,
     teamSize: s.team.length,
+    conservation,
   }
 }
 
 /** endTurn honouring a heatMax override, for A14's removal probe. */
 function endTurnWith(s: RunState, cfg: LooseConfig): RunState {
   if (cfg.heatMax === CONFIG.heatMax) return endTurn(s)
-  const raised = { ...s, heat: Math.max(0, s.heat - cfg.heatMax) }
-  const out = endTurn(raised)
-  return out.screen === 'end' && out.heat >= CONFIG.heatMax ? { ...out, screen: s.screen, won: false } : out
+  // endTurn reads CONFIG.heatMax directly, so the override is applied by
+  // shifting heat below it first. With a very large override this pins heat at
+  // one tick, which is a faithful removal rather than a delay: enterNode zeroes
+  // heat per node, so nothing accumulates a level across nodes.
+  return endTurn({ ...s, heat: Math.max(0, s.heat - cfg.heatMax) })
 }
