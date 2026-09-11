@@ -70,14 +70,14 @@ Measured 2026-09-11, at `main`.
 
 | | |
 |---|---|
-| commits | 27 |
-| **engine** | **734 lines** — 8 modules, framework-free, no DOM |
-| **engine tests** | **739 lines** — slightly more test than engine |
-| **ui** | **322 lines** of TSX + 137 lines of CSS and entry point |
-| ui tests | 198 lines |
+| commits | 29 |
+| **engine** | **770 lines** — 8 modules, framework-free, no DOM |
+| **engine tests** | **786 lines** — slightly more test than engine |
+| **ui** | **331 lines** of TSX + 137 lines of CSS and entry point |
+| ui tests | 229 lines |
 | shared art | 80 KB generated (19 tiles, base64) — not authored here |
 | **build** | **324 KB `dist/`** — of which ~107 KB is the embedded art |
-| under test | 17 criteria · 88 tests · 10 tasks · 41 recorded rulings |
+| under test | 17 criteria · 91 tests · 10 tasks · 41 recorded rulings |
 
 ### Where the effort actually went
 
