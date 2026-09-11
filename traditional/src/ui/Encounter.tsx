@@ -2,7 +2,7 @@ import type { RunState } from '../engine/types'
 import { OPERATIVES } from '../engine/content'
 import { CONFIG } from '../engine/config'
 import { canCall } from '../engine/encounter'
-import { ceilingAgainst, pressDamage } from '../engine/run'
+import { ceilingAgainst, pressDamage, turnsRemaining } from '../engine/run'
 import { ART } from './art'
 
 /**
@@ -11,6 +11,14 @@ import { ART } from './art'
  * itself. Integrity is rounded here and nowhere else: the engine keeps the
  * fractional value so the stated ceiling stays truthful.
  */
+/**
+ * Press damage is fractional, and rounding it prints a number the engine never
+ * uses — 13 where it deals 13.2, 5 where it deals 4.7. Over seven presses that
+ * is a whole press of drift in what the player was told. One decimal, and only
+ * where there is one.
+ */
+const showDamage = (n: number): string => (Number.isInteger(n) ? String(n) : n.toFixed(1))
+
 export function Encounter({
   state, onCall, onPress, onEndTurn, onBail,
 }: {
@@ -28,10 +36,7 @@ export function Encounter({
   const left = Math.ceil(sent.integrity)
   const reach = ceilingAgainst(state, sent.guard)
   const press = pressDamage(state)
-  // Turns the player still gets to act in — including the one whose end-turn
-  // fills heat, because a kill on that turn still clears the node. At heat 0
-  // this is turnsAllowed, which is what the stated ceiling budgets presses for.
-  const turnsLeft = Math.ceil((CONFIG.heatMax - state.heat) / CONFIG.heatPerTurn)
+  const turnsLeft = turnsRemaining(state)
 
   return (
     <div className="screen">
@@ -60,7 +65,7 @@ export function Encounter({
       <button className="flat" onClick={onPress} disabled={state.pressedThisTurn}>
         <b>PRESS</b>
         <span className="chip you">
-          {state.pressedThisTurn ? 'SPENT THIS TURN' : `FREE · ${Math.round(press)} DAMAGE`}
+          {state.pressedThisTurn ? 'SPENT THIS TURN' : `FREE · ${showDamage(press)} DAMAGE`}
         </span>
       </button>
 

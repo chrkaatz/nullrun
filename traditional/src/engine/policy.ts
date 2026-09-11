@@ -30,7 +30,18 @@ export type RunSummary = {
   teamSize: number
   /** A3: counts of accounting violations seen while the run was played. */
   conservation: Conservation
+  /** A2: how often the route had to be softened to stay takeable. */
+  route: RouteHealth
 }
+
+/**
+ * generateOffers softens a node down to the team's ceiling when nothing on the
+ * screen is achievable. That keeps A2's guarantee, but a screen where *every*
+ * offer has been softened is not a choice — it is the route becoming a
+ * formality, which is the failure this arm has already hit once by another
+ * road. Counting both tells the difference.
+ */
+export type RouteHealth = { screens: number; withSoftened: number; allSoftened: number }
 
 /**
  * A3 asks that nothing is silently created, duplicated or destroyed. Counting
@@ -62,6 +73,7 @@ export function playRun(
     overRamMax: 0, duplicateTeam: 0, overTeamCap: 0, creditsFell: 0,
   }
   let credits = 0
+  const route: RouteHealth = { screens: 0, withSoftened: 0, allSoftened: 0 }
 
   const audit = () => {
     if (s.ram > s.ramMax) conservation.overRamMax++
@@ -92,6 +104,10 @@ export function playRun(
     audit()
     steps++
     if (s.screen === 'route') {
+      const soft = s.offers.filter(o => o.integrity === o.ceiling).length
+      route.screens++
+      if (soft > 0) route.withSoftened++
+      if (soft === s.offers.length) route.allSoftened++
       const indexed = s.offers.map((o, i) => ({ o, i }))
       const pool = policy === 'careful'
         ? (indexed.filter(({ o }) => o.integrity <= ceilingAgainst(s, o.guard)).length
@@ -148,6 +164,7 @@ export function playRun(
     callsMade: s.callsMade,
     teamSize: s.team.length,
     conservation,
+    route,
   }
 }
 

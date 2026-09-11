@@ -5,7 +5,7 @@ import { Route } from './Route'
 import { App } from './App'
 import { startRun } from '../engine/run'
 import { generateOffers, enterNode } from '../engine/route'
-import { turnsAllowed } from '../engine/run'
+import { turnsAllowed, turnsRemaining, pressDamage } from '../engine/run'
 import { CONFIG } from '../engine/config'
 import { Encounter } from './Encounter'
 
@@ -79,6 +79,33 @@ describe('rounded displays never contradict the engine', () => {
         <Encounter state={s} onCall={() => {}} onPress={() => {}} onEndTurn={() => {}} onBail={() => {}} />,
       )
       expect(container.textContent, `integrity ${integrity} rendered as dead`).not.toContain('0 LEFT')
+      cleanup()
+    }
+  })
+})
+
+describe('the screen shows figures the engine actually uses', () => {
+  it('states press damage without rounding it away (A7)', () => {
+    // pressDamage is fractional at most layers. Rounding printed 13 where the
+    // engine deals 13.2 — over seven presses, a whole press of drift in what
+    // the player was told they could do.
+    const s = enterNode(generateOffers({ ...startRun('PRESS'), layer: 7 }), 0)
+    const exact = pressDamage(s)
+    expect(Number.isInteger(exact)).toBe(false)
+    const { container } = render(
+      <Encounter state={s} onCall={() => {}} onPress={() => {}} onEndTurn={() => {}} onBail={() => {}} />,
+    )
+    expect(container.textContent).toContain(`FREE · ${exact.toFixed(1)} DAMAGE`)
+  })
+
+  it('takes its turn count from the engine, not its own arithmetic (A7)', () => {
+    const s = enterNode(generateOffers(startRun('TL')), 0)
+    for (const heat of [0, 15, 45, 90]) {
+      const at = { ...s, heat }
+      const { container } = render(
+        <Encounter state={at} onCall={() => {}} onPress={() => {}} onEndTurn={() => {}} onBail={() => {}} />,
+      )
+      expect(container.textContent).toContain(String(turnsRemaining(at)))
       cleanup()
     }
   })

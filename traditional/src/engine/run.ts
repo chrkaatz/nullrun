@@ -49,6 +49,11 @@ export function turnsAllowed(_state: RunState): number {
   return Math.ceil(CONFIG.heatMax / CONFIG.heatPerTurn)
 }
 
+/** How many of those turns are left from where this state stands. */
+export function turnsRemaining(state: RunState): number {
+  return Math.ceil((CONFIG.heatMax - state.heat) / CONFIG.heatPerTurn)
+}
+
 /** A12: mitigation never reduces a hit to nothing; pierce ignores guard entirely. */
 export function mitigate(op: Operative, guard: number): number {
   if (op.damage === undefined) return 0
@@ -61,9 +66,18 @@ export function logged(state: RunState, note: string): readonly string[] {
 }
 
 /**
- * The most damage this team could bring against `guard` before heat ends the
- * node: every unspent operative once, plus a press every allowed turn.
- * A16 requires this to be shown before a node is chosen.
+ * What this team can be relied on to bring against `guard` before heat ends
+ * the node: every unspent operative once, plus a press every turn it acts in.
+ *
+ * It is a floor, not a true maximum, and deliberately so — two things let a
+ * real player exceed it. Heat-reducing operatives buy turns the budget does
+ * not know about (`tally` at -15 heat is a whole extra turn, and therefore an
+ * extra press). And `mitigate` is evaluated against the node's base guard,
+ * while `bishop` and `ninth` strip it, so later hits land harder than budgeted.
+ * Both err toward understating, which is the safe direction: A16 promises the
+ * player what they can count on, and A2 decides achievability on the same
+ * conservative figure. Budgeting the strips would make it sharper at the cost
+ * of promising a sequencing the player might not find.
  */
 export function ceilingAgainst(state: RunState, guard: number): number {
   const burst = state.team.reduce((n, slot) => {

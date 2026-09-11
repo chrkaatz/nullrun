@@ -44,6 +44,22 @@ describe('A15 the free action cannot carry a node', () => {
   })
 })
 
+describe('A2 the route stays a choice', () => {
+  it('never softens every offer on a screen, and rarely most screens', () => {
+    // The A2 fallback rewrites an unreachable node down to the team's ceiling.
+    // One softened offer is the guarantee working. A screen where all three
+    // are softened is the route ceasing to be a decision, and a high rate
+    // across the sample means the content has outrun the team.
+    const runs = careful()
+    const screens = runs.reduce((n, r) => n + r.route.screens, 0)
+    const withSoft = runs.reduce((n, r) => n + r.route.withSoftened, 0)
+    const allSoft = runs.reduce((n, r) => n + r.route.allSoftened, 0)
+    expect(screens).toBeGreaterThan(500)
+    expect(allSoft, `${allSoft} of ${screens} route screens offered nothing but softened nodes`).toBe(0)
+    expect(withSoft / screens, 'softening carries too much of the route').toBeLessThan(1 / 3)
+  })
+})
+
 describe('A13 no resource decides the run before play', () => {
   it('the core can be beaten by a team the run can assemble', () => {
     // The failure this criterion names is a run whose outcome is fixed before
