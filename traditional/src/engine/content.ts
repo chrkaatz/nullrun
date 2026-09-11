@@ -29,7 +29,7 @@ export const STARTING_TEAM: readonly OperativeId[] = [
 export const SENTINELS: Record<string, Sentinel> = {
   cold:   { id: 'cold',   name: 'COLD STORAGE',  tag: 'QUIET',  integrity: 51,  guard: 0, intents: [{ label: 'HOLD', damage: 0 }, { label: 'PURGE', damage: 7 }] },
   wall:   { id: 'wall',   name: 'ICE WALL',      tag: 'COMBAT', integrity: 78,  guard: 3, intents: [{ label: 'STRIKE', damage: 7 }] },
-  hunter: { id: 'hunter', name: 'HUNTER',        tag: 'HARD',   integrity: 90,  guard: 2, intents: [{ label: 'HUNT', damage: 8 }] },
-  sweep:  { id: 'sweep',  name: 'CORPSEC SWEEP', tag: 'HARD',   integrity: 95,  guard: 1, intents: [{ label: 'BURST', damage: 5 }, { label: 'SUPPRESS', damage: 9 }] },
+  hunter: { id: 'hunter', name: 'HUNTER',        tag: 'HARD',   integrity: 75,  guard: 2, intents: [{ label: 'HUNT', damage: 8 }] },
+  sweep:  { id: 'sweep',  name: 'CORPSEC SWEEP', tag: 'HARD',   integrity: 80,  guard: 1, intents: [{ label: 'BURST', damage: 5 }, { label: 'SUPPRESS', damage: 9 }] },
   archon: { id: 'archon', name: 'ARCHON',        tag: 'CORE',   integrity: 144, guard: 3, intents: [{ label: 'SHOCKWAVE', damage: 10 }, { label: 'RESTORE', damage: 0, restore: 2 }, { label: 'SHOCKWAVE', damage: 12 }] },
 }
