@@ -81,7 +81,7 @@ export function advanceLayer(state: RunState): RunState {
     }
     return enterNode(atCore, 0)
   }
-  return generateOffers({ ...state, layer, offer: null, releasing: false })
+  return generateOffers({ ...state, layer, offer: null, releasing: false, team: state.team.map(t => ({ ...t, spent: false })) })
 }
 
 export function bail(state: RunState): RunState {

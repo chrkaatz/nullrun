@@ -96,6 +96,26 @@ describe('advanceLayer', () => {
     expect(s.node!.ceiling).toBe(ceilingAgainst(s, s.node!.guard))
     expect(s.node!.ceiling).toBeGreaterThan(0)
   })
+
+  it('offers ceilings computed against a refreshed team, not the spent one (A16)', () => {
+    const base = cleared()
+    const spent = { ...base, team: base.team.map(t => ({ ...t, spent: true })) }
+    const s = advanceLayer(declineSpoils(spent))
+    expect(s.screen).toBe('route')
+    // The detector: at the same layer, a ceiling taken from the spent team is
+    // strictly smaller, because every operative is spent and its burst term is
+    // zero. This assertion goes first, or the team check below shadows it.
+    // The layer has to be held equal by hand — `spent` still sits on the
+    // previous layer, and that bump alone raises the press term enough to
+    // satisfy the comparison even when the refresh is missing.
+    const spentHere = { ...spent, layer: s.layer }
+    expect(s.offers[0].ceiling)
+      .toBeGreaterThan(ceilingAgainst(spentHere, s.offers[0].guard))
+    for (const o of s.offers) {
+      expect(o.ceiling).toBe(ceilingAgainst(s, o.guard))
+    }
+    expect(s.team.every(t => !t.spent)).toBe(true)
+  })
 })
 
 describe('bail', () => {
