@@ -5,8 +5,18 @@ export default defineConfig({
   plugins: [react()],
   base: './',
   test: {
-    environment: 'node',
-    include: ['src/**/*.test.{ts,tsx}'],
-    environmentMatchGlobs: [['src/ui/**', 'jsdom']],
+    // environmentMatchGlobs is deprecated in Vitest 3 and removed in 4; its
+    // replacement is projects. The engine suite is DOM-agnostic, so it runs
+    // under either environment -- only the UI suite actually needs jsdom.
+    projects: [
+      {
+        extends: true,
+        test: { name: 'engine', environment: 'node', include: ['src/engine/**/*.test.ts'] },
+      },
+      {
+        extends: true,
+        test: { name: 'ui', environment: 'jsdom', include: ['src/ui/**/*.test.tsx'] },
+      },
+    ],
   },
 })
