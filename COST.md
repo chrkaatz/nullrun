@@ -63,85 +63,113 @@ held and never that the game could be finished.
 
 Method: a written design (`traditional/docs/superpowers/specs/`) and an implementation plan
 (`traditional/docs/superpowers/plans/`) carrying the complete code for all ten tasks, executed
-task-by-task with a fresh implementer and a fresh reviewer per task, and a fix round whenever a
-review found something. The code is meant to be kept, not thrown away.
+task-by-task with a fresh implementer and a fresh reviewer per task, a fix round whenever a
+review found something, and a whole-branch review at the end. The code is meant to be kept.
 
-Measured 2026-09-11, at `592975f` on branch `traditional-arm`.
+Measured 2026-09-11, at `main`.
 
 | | |
 |---|---|
-| commits | 18 |
-| **engine** | **694 lines** — 8 modules, framework-free, no DOM |
-| **engine tests** | **685 lines** — very nearly 1:1 with the engine |
-| **ui** | **312 lines** of TSX + 137 lines of CSS and entry point |
-| ui tests | 66 lines |
+| commits | 24 |
+| **engine** | **703 lines** — 8 modules, framework-free, no DOM |
+| **engine tests** | **723 lines** — slightly more test than engine |
+| **ui** | **316 lines** of TSX + 137 lines of CSS and entry point |
+| ui tests | 143 lines |
 | shared art | 80 KB generated (19 tiles, base64) — not authored here |
-| **build** | **324 KB `dist/`** — 312 KB JS, of which ~107 KB is the embedded art |
-| under test | 17 criteria · 76 tests · 10 tasks · 32 recorded rulings |
+| **build** | **324 KB `dist/`** — of which ~107 KB is the embedded art |
+| under test | 17 criteria · 84 tests · 10 tasks · 41 recorded rulings |
 
 ### Where the effort actually went
 
-Not into writing the game. The plan supplied every line of engine code verbatim, and the four
-tasks that were pure transcription (rng, types, content, run start, route) took one dispatch
-between them and needed no correction beyond a single flavour-text collision.
+Not into writing the game. The plan supplied every line of engine code verbatim, and the three
+tasks that were pure transcription went out as a single dispatch and needed one correction — a
+flavour-text collision, where the plan's own content table tripped the plan's own purity guard.
 
 The effort went into **finding out which of the seventeen criteria were actually testing
-anything.** Of the seventeen, five were passing without teeth when handed over:
+anything.** Six were not. Of those six, four were repaired and two were left nominal and are
+recorded as such:
 
-| criterion | what was wrong |
-|---|---|
-| `A13` | assertion reduced algebraically to `pressDamage × turnsAllowed > 0` — true for *every possible implementation* |
-| `A3` | asserted a turn count and a cap enforced structurally upstream; nothing about conservation |
-| `A10` | `getComputedStyle(el).minHeight` under jsdom, which never processes the CSS import — reads `''` and passes unconditionally |
-| `A16` | compared the stored ceiling against a fresh call to the same function on the same state |
-| `A17` | instant-encounter fraction has no reachable failure mode under any policy the game permits |
+| criterion | what was wrong | now |
+|---|---|---|
+| `A13` | assertion reduced algebraically to `pressDamage × turnsAllowed > 0` — true for *every possible implementation* | **repaired**, three falsifiable assertions, mutation-checked |
+| `A15` | compared press damage over six turns when a node really gives seven; the free action *could* clear the softest node at layers 6 and 7 | **repaired**, arithmetic corrected and the game retuned around it |
+| `A3` | asserted a turn count and a cap enforced structurally upstream; nothing about conservation | **repaired**, every step audited for RAM, duplicates, cap and credits |
+| `A10` | `getComputedStyle(el).minHeight` under jsdom, which loads no stylesheet — computes `'auto'`, and the assertion whitelisted `'auto'` and `''` | **repaired as a source check**, not a layout one; the rendered box is measured in a browser, not asserted |
+| `A16` | compared the stored ceiling against a fresh call to the same function on the same state | **repaired** — an independent oracle in `spoils.test.ts`; the route-level check is still circular |
+| `A17` | instant-encounter clause has no reachable failure mode under any policy the game permits | **left nominal.** 0 is the only value it can see. Recorded, not repaired |
 
-`A13` is the one that matters. It exists to catch "a resource bounded such that the outcome is
-decided before play begins" — and it sat green through the entire life of a bug that did
-exactly that. `advanceLayer`'s route branch never reset `spent` before generating offers, so
-every ceiling shown to the player was computed from the team that had just finished fighting
-rather than the refreshed team they would actually bring. Measured effect across 200 seeds:
-`hunter` and `sweep` were achievable **zero** times at every layer, every node was softened by
-the A2 fallback down to whatever the (wrong) ceiling was, and all 200 runs cleared all seven
-route layers. The route was a formality and the game was one boss fight.
+And `A9` was enforced **nowhere at all** until the final review looked for it — no test, no
+assertion, seventeen criteria and only sixteen of them present in the tree.
+
+`A13` and `A15` are the two that matter, and they fail the same way. Both exist to catch a game
+whose outcome is settled by arithmetic rather than play, and both sat green while exactly that
+was true. `A13` was green through the entire life of a bug where route ceilings were computed
+from the team that had just finished fighting rather than the refreshed team the player actually
+brings: `hunter` and `sweep` were achievable **zero** times at every layer, every node was
+softened down to the (wrong) ceiling, and all 200 runs cleared all seven route layers. The route
+was a formality. `A15` was green because it budgeted six presses where a node gives seven — the
+turn that fills heat is still a turn you act in, and a kill on that press clears the node before
+the heat check runs. At the shipped tuning the free action alone cleared the softest node at the
+last two layers, which is the precise thing A15 forbids.
 
 ### What caught what
 
-Three layers of verification, and **each one was blind exactly where another worked**:
+Four layers of verification, and **each was blind exactly where another worked**:
 
-| defect | unit tests | 200-seed statistical run | opening the app |
-|---|---|---|---|
-| route ceilings computed from the spent team (A16) | blind — the A16 test builds state from `startRun`, where nobody has fought, so both readings agree | **caught it** | — |
-| `wren` refunding RAM above `ramMax` (A3, A11) | **caught it** | blind — no scripted policy reaches it, they spend big hitters first | — |
-| "Turns left 7" where `turnsAllowed` is 6 | blind | blind | **caught it** |
-| every load requesting `/favicon.ico` (A8) | blind — the scan reads `src`, not `index.html` | blind | **caught it** |
-| operative text running together into one line | blind | blind | **caught it** |
+| defect | unit tests | 200-seed run | opening the app | whole-branch review |
+|---|---|---|---|---|
+| route ceilings from the spent team (A16) | blind — the A16 test builds state from `startRun`, where nobody has fought, so both readings agree | **caught it** | — | — |
+| `wren` refunding RAM above `ramMax` (A3, A11) | **caught it** | blind — no scripted policy reaches it | — | — |
+| "Turns left 7" vs `turnsAllowed` 6 | blind | blind | **caught it** | — |
+| every load requesting `/favicon.ico` (A8) | blind — the scan reads `src`, not `index.html` | blind | **caught it** | — |
+| operative text running together | blind | blind | **caught it** | — |
+| the press really gets seven turns (A15) | blind — the test asserted the same formula the engine used | blind — the policy never presses alone | blind | **caught it** |
+| A9 enforced nowhere | blind | blind | blind | **caught it** |
+| a living sentinel displaying "0 LEFT" | blind | blind | blind | **caught it** |
 
-No two of those three layers would have been sufficient. That is the arm's main result, and it
-is not a claim about this game: a statistical harness cannot see what its own policy never does,
-a unit test cannot see what it never constructs, and neither can see what is plainly wrong on
-screen.
+No three of those four would have been sufficient. That is this arm's main result, and it is not
+a claim about this game: a statistical harness cannot see what its own policy never does, a unit
+test cannot see what it never constructs, neither can see what is plainly wrong on screen, and
+none of the three can see a criterion that was never written down.
 
-A fourth lesson, narrower but sharper. One ten-line regression test written *during this run,
-by the controller, while auditing every other test for exactly this*, contained three separate
-false-green traps: the assertions were ordered so the detector never fired, the two sides
-compared different layers so the arithmetic passed with the bug present, and the reported
-evidence number was wrong because of it. Every one was found by **running the test against the
-broken code**, and none by reading it. Reviewers had read it and passed it.
+A fifth lesson, narrower but sharper. One ten-line regression test written *during this run,
+while auditing every other test for exactly this*, contained three separate false-green traps:
+the assertions were ordered so the detector never fired, the two sides compared different layers
+so the arithmetic passed with the bug present, and the reported evidence figure was wrong because
+of it. Every one was found by **running the test against the broken code**, and none by reading
+it. Reviewers had read it and passed it.
+
+### The balance, and what it cost to make honest
+
+Measured over 200 seeds with the careful policy, before and after the `turnsAllowed` correction:
+
+| | on the undercount | on the true count |
+|---|---|---|
+| win rate | 0.385 | 0.305 |
+| decisions per encounter | 3.99 | 5.67 |
+| A15 worst margin | 2.8 (fictional) | 19.6 |
+| sentinels met | cold 980, sweep 237, wall 41, hunter 142 | cold 466, sweep 427, wall 126, hunter 111 |
+
+Correcting the arithmetic broke A15 for real, and the cause was structural rather than a bad
+constant: press-only damage grew 11.9 per layer while the softest sentinel grew 5.1, so the free
+action outgrew the content and caught it at layer 6. Lowering `pressGrowth` satisfies A15 and
+drives the win rate to zero, because A15 reads only non-CORE sentinels and the core fight needs
+the press. The fix was to make content outgrow the press instead — `layerScale` 0.10 → 0.20 —
+which also produced the best content distribution the arm has had.
 
 ### What it did not deliver
 
-- **A17 is met, not earned, for one sentinel.** `wall` is reached 41 times across ~1600
-  encounters against `cold`'s 980. The criterion says every piece of content is reached; two of
-  four route sentinels needed a content change to get there at all, and the third is thin.
-- **The criteria that measure the measuring instrument are still weak.** `A17`'s
-  "decisions per encounter" counts completed turns, not decisions — a mid-turn clear records one
-  fewer and a heat-out records zero for its final turn, while press-plus-calls inside a turn are
-  never counted. The bias is conservative, so the number stands; the label does not.
-- **`A1` is shallow.** One seed, compared through `RunSummary` only. Nondeterminism that does
-  not move a summary field is invisible to it.
-- **Nothing tests the UI's behaviour**, only its text. The two UI defects above were found by a
-  human-equivalent look at the running app, and nothing in the suite would catch their return.
+- **`A17`'s instant-encounter clause cannot fail** and is recorded as nominal rather than met.
+- **`A17` measures completed turns, not decisions.** A mid-turn clear records one fewer, a
+  heat-out records zero for its final turn, and press-plus-calls inside a turn are never counted.
+  The bias is conservative, so the figure stands; the label does not.
+- **`A1` is shallow.** One seed, compared through `RunSummary` only. Nondeterminism that does not
+  move a summary field is invisible to it.
+- **`A9` and `A10` are guarded at the stylesheet, not the rendered box.** jsdom lays nothing out,
+  so the real evidence is a browser measurement at 360×780 across all five screens, and the tests
+  are a regression guard on it rather than a proof.
+- **Nothing tests UI behaviour**, only its text and its stylesheet. Three of the defects above
+  were found by looking at the running app, and nothing in the suite would catch their return.
 
 ### The handover caveat
 
@@ -149,9 +177,10 @@ broken code**, and none by reading it. Reviewers had read it and passed it.
 > partly because it was told. The comparison measures method given those lessons, not method
 > from zero.
 
-And a second caveat the first arm did not need: four of those handed-over criteria arrived with
-assertions that did not test them. Being told the lesson is not the same as being given a check
-that enforces it.
+And a second caveat the first arm did not need: of those four handed-over criteria, **two
+arrived with assertions that did not test them** — `A13`'s was a tautology and `A15`'s counted
+the wrong number of turns. Being told the lesson is not the same as being given a check that
+enforces it, and a handed-over criterion is easier to trust than one you had to earn.
 
 ## goal-driven
 

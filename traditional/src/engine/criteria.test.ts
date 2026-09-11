@@ -3,7 +3,8 @@ import { playRun } from './policy'
 import { startRun, ceilingAgainst, pressDamage, turnsAllowed } from './run'
 import { scaleAt } from './route'
 import { CONFIG } from './config'
-import { OPERATIVES, SENTINELS } from './content'
+import { DRAFT_POOL, OPERATIVES, SENTINELS } from './content'
+import { clearNode } from './spoils'
 
 const SEEDS = Array.from({ length: 200 }, (_, i) => `RUN-${i}`)
 const careful = () => SEEDS.map(s => playRun(s, 'careful'))
@@ -113,6 +114,23 @@ describe('A17 viability', () => {
     const enc = runs.reduce((n, r) => n + r.encounters, 0)
     const instant = runs.reduce((n, r) => n + r.instantEncounters, 0)
     expect(instant / enc).toBeLessThanOrEqual(0.1)
+  })
+
+  it('every draft operative is reachable across the sample', () => {
+    // The criterion says every piece of content is reached. Sentinels were the
+    // only content it checked; the nine draftable operatives are content too,
+    // and nothing asserted they could ever be offered.
+    const offered = new Set<string>()
+    for (const seed of SEEDS) {
+      for (let layer = 1; layer < CONFIG.layers; layer++) {
+        let s = { ...startRun(seed), layer, credits: 0 }
+        s = clearNode({ ...s, node: { sentinelId: 'cold', integrity: 1, guard: 0, payout: 0, ceiling: 1 } })
+        if (s.offer) offered.add(s.offer)
+      }
+    }
+    for (const id of DRAFT_POOL) {
+      expect(offered.has(id), `${id} is never offered in 200 seeds`).toBe(true)
+    }
   })
 
   it('every sentinel is met across the sample', () => {
