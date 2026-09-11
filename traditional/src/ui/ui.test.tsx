@@ -36,12 +36,17 @@ describe('Route screen', () => {
 })
 
 describe('layout', () => {
-  it('gives every interactive target at least 44px on its short edge (A10)', () => {
+  it('renders a screen made entirely of real controls (A6, A10)', () => {
+    // The plan's A10 check lived here and asserted getComputedStyle(...)
+    // .minHeight, which under jsdom is always '' because the stylesheet is
+    // never loaded -- it passed for any value, including none. A10 and A9 are
+    // guarded in layout.test.ts against the stylesheet source, and were
+    // measured in a real browser. What this can honestly assert is that the
+    // screen offers something to press at all, which is A6's half of it.
     const { container } = render(<App />)
-    for (const el of Array.from(container.querySelectorAll('button'))) {
-      const min = getComputedStyle(el).minHeight
-      expect(min === '' || parseInt(min, 10) >= 44 || min === 'auto').toBe(true)
-    }
+    const buttons = Array.from(container.querySelectorAll('button'))
+    expect(buttons.length).toBeGreaterThan(0)
+    expect(buttons.some(b => !b.hasAttribute('disabled'))).toBe(true)
   })
 })
 
