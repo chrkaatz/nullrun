@@ -20,10 +20,13 @@ export function clearNode(state: RunState): RunState {
     credits: paid,
     log: logged(state, `Layer ${state.layer} — ${name} down.`),
   }
+  // The fight is over: drop the sentinel and the node rather than carrying a
+  // dead encounter's state into screens that have no business reading it.
+  const done = { ...withLog, sentinel: null, node: null }
   if (state.layer >= CONFIG.layers) {
-    return { ...withLog, screen: 'end', won: true }
+    return { ...done, screen: 'end', won: true }
   }
-  return { ...withLog, screen: 'spoils', offer: nextOffer(withLog), releasing: false }
+  return { ...done, screen: 'spoils', offer: nextOffer(done), releasing: false }
 }
 
 /** A11: at the cap, accepting requires a release first. */
@@ -67,6 +70,10 @@ export function declineSpoils(state: RunState): RunState {
 export function advanceLayer(state: RunState): RunState {
   const layer = state.layer + 1
   if (layer >= CONFIG.layers) {
+    // The core alone does not scale with layerScale: route nodes climb toward
+    // it, and a core that climbed too would make depth pointless. At the
+    // shipped tuning layer-7 nodes land around 112-128 against its fixed 144,
+    // so it is the hardest fight without being a different kind of fight.
     const core = SENTINELS.archon
     // The core is entered directly rather than offered, but its ceiling is
     // still stated truthfully: computed against the team as it will be inside

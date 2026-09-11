@@ -83,7 +83,7 @@ describe('turnsAllowed', () => {
     // only thing that ends it is heat. Asserting the formula against itself
     // would have missed the off-by-one this replaced.
     let s = enterNode(generateOffers({ ...startRun('TURNS'), layer: 7 }), 0)
-    s = { ...s, integrity: 99_999, sentinel: { ...s.sentinel!, integrity: 99_999, max: 99_999 } }
+    s = { ...s, integrity: 99_999, sentinel: { ...s.sentinel!, integrity: 99_999 } }
     let acted = 0
     while (s.screen === 'encounter') {
       const before = s.sentinel!.integrity

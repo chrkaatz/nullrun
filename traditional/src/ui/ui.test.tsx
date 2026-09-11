@@ -8,6 +8,9 @@ import { generateOffers, enterNode } from '../engine/route'
 import { turnsAllowed, turnsRemaining, pressDamage } from '../engine/run'
 import { Encounter } from './Encounter'
 import { Loadout } from './Loadout'
+import { End } from './End'
+import { bail } from '../engine/spoils'
+import { CONFIG } from '../engine/config'
 
 afterEach(cleanup)
 
@@ -136,5 +139,33 @@ describe('the screens agree with each other', () => {
       .find(el => el.textContent?.includes('Turns left'))
     expect(left?.textContent).toContain(String(turnsRemaining(s1)))
     expect(turnsRemaining(s1)).toBe(turnsAllowed(s1))
+  })
+})
+
+describe('End screen', () => {
+  it('does not call an aborted run a death (A7)', () => {
+    // bail() ends the run with heat below heatMax and integrity intact. The
+    // screen derived its headline from heat alone, so a player who walked out
+    // was told "You did not come back."
+    const s = bail(enterNode(generateOffers(startRun('BAIL')), 0))
+    expect(s.heat).toBeLessThan(CONFIG.heatMax)
+    expect(s.integrity).toBeGreaterThan(0)
+    const { container } = render(<End state={s} onAgain={() => {}} />)
+    expect(container.textContent).not.toContain('You did not come back')
+    expect(container.textContent).toContain('walked out')
+  })
+
+  it('names each of the other endings from engine state', () => {
+    const base = enterNode(generateOffers(startRun('ENDS')), 0)
+    const cases: Array<[Partial<typeof base>, string]> = [
+      [{ won: true, screen: 'end' }, 'The core is dark'],
+      [{ heat: CONFIG.heatMax, screen: 'end' }, 'They found you'],
+      [{ integrity: 0, screen: 'end' }, 'You did not come back'],
+    ]
+    for (const [patch, text] of cases) {
+      const { container } = render(<End state={{ ...base, ...patch }} onAgain={() => {}} />)
+      expect(container.textContent).toContain(text)
+      cleanup()
+    }
   })
 })

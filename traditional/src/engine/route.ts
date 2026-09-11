@@ -1,7 +1,7 @@
 import { CONFIG } from './config'
 import { SENTINELS } from './content'
 import { makeRng } from './rng'
-import { ceilingAgainst } from './run'
+import { ceilingAgainst, withinReach } from './run'
 import type { NodeOffer, RunState } from './types'
 
 const ROUTE_IDS = Object.values(SENTINELS)
@@ -46,7 +46,7 @@ export function generateOffers(state: RunState): RunState {
 
   // If nothing in the set is achievable, soften the easiest to exactly
   // reachable rather than offer a layer that cannot be taken (A2).
-  if (!offers.some(o => o.integrity <= o.ceiling)) {
+  if (!offers.some(withinReach)) {
     let e = 0
     for (let i = 1; i < offers.length; i++) {
       if (offers[i].integrity < offers[e].integrity) e = i
@@ -76,7 +76,6 @@ export function enterNode(state: RunState, index: number): RunState {
       id: def.id,
       name: def.name,
       integrity: node.integrity,
-      max: node.integrity,
       guard: node.guard,
       intentIndex: 0,
       shownIntent: first,

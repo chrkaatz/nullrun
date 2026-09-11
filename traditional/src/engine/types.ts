@@ -43,7 +43,6 @@ export type ActiveSentinel = {
   id: string
   name: string
   integrity: number
-  max: number
   guard: number
   intentIndex: number
   /** frozen the moment it is shown — A4 */
@@ -53,7 +52,6 @@ export type ActiveSentinel = {
 
 export type RunState = {
   seed: string
-  rngState: number
   screen: Screen
   layer: number
   integrity: number

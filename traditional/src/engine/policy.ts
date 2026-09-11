@@ -2,7 +2,7 @@ import { CONFIG, type Config } from './config'
 import { OPERATIVES } from './content'
 import { call, press, endTurn } from './encounter'
 import { generateOffers, enterNode } from './route'
-import { ceilingAgainst, startRun } from './run'
+import { startRun, withinReach } from './run'
 import { advanceLayer, declineSpoils, takeOperative, takePatch } from './spoils'
 import type { RunState } from './types'
 
@@ -109,11 +109,8 @@ export function playRun(
       if (soft > 0) route.withSoftened++
       if (soft === s.offers.length) route.allSoftened++
       const indexed = s.offers.map((o, i) => ({ o, i }))
-      const pool = policy === 'careful'
-        ? (indexed.filter(({ o }) => o.integrity <= ceilingAgainst(s, o.guard)).length
-            ? indexed.filter(({ o }) => o.integrity <= ceilingAgainst(s, o.guard))
-            : indexed)
-        : indexed
+      const reachable = indexed.filter(({ o }) => withinReach(o))
+      const pool = policy === 'careful' && reachable.length ? reachable : indexed
       const chosen = pool.sort((a, b) => b.o.payout - a.o.payout)[0].i
       s = enterNode(s, chosen)
       continue

@@ -44,7 +44,7 @@ describe('call', () => {
 
   it('guard reduces damage but never below 1, and pierce ignores it (A12)', () => {
     const s0 = { ...inEncounter(), ram: 9 }
-    const hard = { ...s0, sentinel: { ...s0.sentinel!, guard: 99, integrity: 500, max: 500 } }
+    const hard = { ...s0, sentinel: { ...s0.sentinel!, guard: 99, integrity: 500 } }
     const blunt = call(hard, 'bishop')
     expect(hard.sentinel!.integrity - blunt.sentinel!.integrity).toBe(1)
     const pierced = call(hard, 'mole')

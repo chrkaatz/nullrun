@@ -1,13 +1,11 @@
 import { CONFIG } from './config'
 import { OPERATIVES, STARTING_TEAM } from './content'
-import { makeRng } from './rng'
-import type { Operative, RunState } from './types'
+import type { NodeOffer, Operative, RunState } from './types'
 
 export function startRun(seed: string): RunState {
   const s = seed.toUpperCase()
   return {
     seed: s,
-    rngState: makeRng(s).state(),
     screen: 'loadout',
     layer: 1,
     integrity: CONFIG.integrity,
@@ -47,6 +45,31 @@ export function pressDamage(state: RunState): number {
  */
 export function turnsAllowed(_state: RunState): number {
   return Math.ceil(CONFIG.heatMax / CONFIG.heatPerTurn)
+}
+
+/**
+ * Whether a node can be cleared with what the player has. This is the rule A2
+ * guarantees, A16 displays and the route generator enforces; it was written
+ * out at four call sites, one of them in a React component.
+ */
+export function withinReach(offer: NodeOffer): boolean {
+  return offer.integrity <= offer.ceiling
+}
+
+/**
+ * How a finished run ended. The End screen used to derive this from heat, which
+ * restated the scripted policy's rule in React and — worse — called an aborted
+ * run a death: bail() ends the run with heat below heatMax and integrity
+ * intact, so the screen announced "you did not come back" to a player who
+ * walked out. Aborting is now its own outcome.
+ */
+export type Ending = 'won' | 'heat' | 'dead' | 'aborted'
+
+export function endingOf(state: RunState): Ending {
+  if (state.won) return 'won'
+  if (state.heat >= CONFIG.heatMax) return 'heat'
+  if (state.integrity <= 0) return 'dead'
+  return 'aborted'
 }
 
 /** How many of those turns are left from where this state stands. */

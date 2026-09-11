@@ -54,6 +54,13 @@ export function call(state: RunState, id: OperativeId): RunState {
 /**
  * A15: free, spends nobody, once per turn, and deliberately too weak to
  * finish a node on its own. It is what turns time into damage.
+ *
+ * The press ignores guard entirely, where `call` goes through `mitigate`. That
+ * is deliberate — the free action is a constant, not a weapon, and making it
+ * mitigable would let a high-guard node shut it off and strand a player with
+ * nothing to do. It does mean the encounter screen states a guard figure that
+ * the press below it does not obey, which is worth knowing before tuning
+ * either: A15's margin rests on the press being unmitigated.
  */
 export function press(state: RunState): RunState {
   if (state.screen !== 'encounter' || state.pressedThisTurn || !state.sentinel) return state
