@@ -21,7 +21,11 @@ export function Encounter({
   onBail: () => void
 }) {
   const sent = state.sentinel!
-  const left = Math.round(sent.integrity)
+  // Ceil, not round: press damage is fractional, so a sentinel can sit on 0.4
+  // integrity and still be alive. Rounding would print "0 LEFT" next to a
+  // sentinel that takes another hit to kill -- a displayed value contradicting
+  // engine state, which is exactly what A7 forbids.
+  const left = Math.ceil(sent.integrity)
   const reach = ceilingAgainst(state, sent.guard)
   const press = pressDamage(state)
   // Turns the player still gets to act in — including the one whose end-turn

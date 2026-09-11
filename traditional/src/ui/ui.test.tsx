@@ -69,3 +69,17 @@ describe('Encounter screen', () => {
     expect(container.textContent).toContain(`NEXT: ${s.sentinel!.shownIntent.label} FOR ${s.sentinel!.shownDamage}`)
   })
 })
+
+describe('rounded displays never contradict the engine', () => {
+  it('a living sentinel is never shown as zero (A7)', () => {
+    const base = enterNode(generateOffers(startRun('ROUND')), 0)
+    for (const integrity of [0.1, 0.4, 0.5, 0.9, 1]) {
+      const s = { ...base, sentinel: { ...base.sentinel!, integrity } }
+      const { container } = render(
+        <Encounter state={s} onCall={() => {}} onPress={() => {}} onEndTurn={() => {}} onBail={() => {}} />,
+      )
+      expect(container.textContent, `integrity ${integrity} rendered as dead`).not.toContain('0 LEFT')
+      cleanup()
+    }
+  })
+})
