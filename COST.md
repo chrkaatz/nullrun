@@ -95,7 +95,7 @@ recorded as such:
 | `A15` | compared press damage over six turns when a node really gives seven; the free action *could* clear the softest node at layers 6 and 7 | **repaired**, arithmetic corrected and the game retuned around it |
 | `A3` | asserted a turn count and a cap enforced structurally upstream; nothing about conservation | **repaired**, every step audited for RAM, duplicates, cap and credits |
 | `A10` | `getComputedStyle(el).minHeight` under jsdom, which loads no stylesheet — computes `'auto'`, and the assertion whitelisted `'auto'` and `''` | **repaired as a source check**, not a layout one; the rendered box is measured in a browser, not asserted |
-| `A16` | compared the stored ceiling against a fresh call to the same function on the same state | **repaired** — an independent oracle in `spoils.test.ts`; the route-level check is still circular |
+| `A16` | compared the stored ceiling against a fresh call to the same function on the same state | **repaired** — an independent oracle in `spoils.test.ts` is what caught the real bug. The route-level check remains a staleness detector only, and is recorded as such |
 | `A17` | instant-encounter clause has no reachable failure mode under any policy the game permits | **left nominal.** 0 is the only value it can see. Recorded, not repaired |
 
 And `A9` was enforced **nowhere at all** until the final review looked for it — no test, no
@@ -163,8 +163,10 @@ which also produced the best content distribution the arm has had.
 - **`A17` measures completed turns, not decisions.** A mid-turn clear records one fewer, a
   heat-out records zero for its final turn, and press-plus-calls inside a turn are never counted.
   The bias is conservative, so the figure stands; the label does not.
-- **`A1` is shallow.** One seed, compared through `RunSummary` only. Nondeterminism that does not
-  move a summary field is invisible to it.
+- **`A1` was shallow** — one seed, compared through `RunSummary` only, so nondeterminism that did
+  not move a summary field was invisible. It now replays three seeds step by step and compares
+  every intermediate state, and checks a different seed genuinely diverges. What it still does not
+  cover is input sequences other than the scripted one.
 - **`A9` and `A10` are guarded at the stylesheet, not the rendered box.** jsdom lays nothing out,
   so the real evidence is a browser measurement at 360×780 across all five screens, and the tests
   are a regression guard on it rather than a proof.

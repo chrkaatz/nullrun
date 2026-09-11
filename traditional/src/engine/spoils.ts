@@ -5,6 +5,11 @@ import { generateOffers, enterNode } from './route'
 import { ceilingAgainst, logged } from './run'
 import type { OperativeId, RunState } from './types'
 
+/**
+ * Keyed on (seed, layer), but the result also depends on the team: it can only
+ * offer someone not already held. That is intentional, and the key alone does
+ * not determine the answer.
+ */
 function nextOffer(state: RunState): OperativeId | null {
   const held = new Set(state.team.map(t => t.id))
   const avail = DRAFT_POOL.filter(id => !held.has(id))

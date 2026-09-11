@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { playRun } from './policy'
 import { startRun, ceilingAgainst, pressDamage, turnsAllowed } from './run'
-import { scaleAt } from './route'
+import { scaleAt, generateOffers, enterNode } from './route'
 import { CONFIG } from './config'
 import { DRAFT_POOL, OPERATIVES, SENTINELS } from './content'
-import { clearNode } from './spoils'
+import { call, press, endTurn } from './encounter'
+import { clearNode, takePatch } from './spoils'
 
 const SEEDS = Array.from({ length: 200 }, (_, i) => `RUN-${i}`)
 const careful = () => SEEDS.map(s => playRun(s, 'careful'))
@@ -12,6 +13,40 @@ const careful = () => SEEDS.map(s => playRun(s, 'careful'))
 describe('A1 determinism', () => {
   it('same seed and policy reproduce the run exactly', () => {
     expect(playRun('DET', 'careful')).toEqual(playRun('DET', 'careful'))
+  })
+
+  it('reproduces every intermediate state, not just the summary', () => {
+    // Comparing summaries only would miss any nondeterminism that does not
+    // move a summary field — a different route taken to the same outcome, a
+    // different operative drafted, a different intent shown. This replays the
+    // whole state sequence and compares it step by step.
+    const trace = (seed: string): string[] => {
+      const out: string[] = []
+      let s = generateOffers(startRun(seed))
+      let steps = 0
+      while (s.screen !== 'end' && steps++ < 20_000) {
+        out.push(JSON.stringify(s))
+        if (s.screen === 'route') { s = enterNode(s, 0); continue }
+        if (s.screen === 'encounter') {
+          const ready = s.team.find(t => !t.spent && OPERATIVES[t.id].cost <= s.ram)
+          if (!s.pressedThisTurn) s = press(s)
+          else if (ready) s = call(s, ready.id)
+          else s = endTurn(s)
+          continue
+        }
+        s = takePatch(s)
+      }
+      out.push(JSON.stringify(s))
+      return out
+    }
+    for (const seed of ['DET-1', 'DET-2', 'DET-3']) {
+      const a = trace(seed)
+      const b = trace(seed)
+      expect(a.length).toBeGreaterThan(10)
+      expect(a).toEqual(b)
+      // and a different seed really does diverge, or the above proves nothing
+      expect(trace(seed + 'X')).not.toEqual(a)
+    }
   })
 })
 
