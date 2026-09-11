@@ -26,7 +26,7 @@ export default {
           if (!legalKeys.has(key)) illegal.push({ type: 'take', id: o.id });
         }
         for (const t of ['call', 'free', 'end', 'take', 'release', 'onward', 'bail']) {
-          if (![...legalKeys].some(k => k.startsWith(t + '/'))) illegal.push({ type: t });
+          if (!legalKeys.has(t + '/')) illegal.push({ type: t });
         }
 
         for (const action of illegal) {
