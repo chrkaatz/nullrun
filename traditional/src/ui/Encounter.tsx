@@ -48,6 +48,12 @@ export function Encounter({
 
       <img className="art" src={ART[sent.id]} alt="" />
 
+      {/* One line of what a turn is, for anyone who arrives at this screen
+          without having read the loadout. */}
+      <p className="brief">
+        Call who you can afford, press once for free, then end the turn and take what it showed.
+      </p>
+
       <div className="intent">
         NEXT: {sent.shownIntent.label} FOR {sent.shownDamage}
         {sent.shownIntent.restore ? ` · RESTORES ${sent.shownIntent.restore} GUARD` : ''}

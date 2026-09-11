@@ -192,3 +192,24 @@ describe('the team is never truncated', () => {
     expect(big.querySelectorAll('.op')).toHaveLength(CONFIG.teamCap)
   })
 })
+
+describe('the game explains itself', () => {
+  it('says what NULLRUN is on the opening screen', () => {
+    const { container } = render(<Loadout state={startRun('BRIEF')} onStart={() => {}} />)
+    const brief = container.querySelector('.brief')?.textContent ?? ''
+    expect(brief).toMatch(/deckbuilder/i)
+    expect(brief).toMatch(/answers once/i)
+    expect(brief.length).toBeGreaterThan(80)
+  })
+
+  it('says what a turn is, on the screen where you take one', () => {
+    const s = enterNode(generateOffers(startRun('BRIEF')), 0)
+    const { container } = render(
+      <Encounter state={s} onCall={() => {}} onPress={() => {}} onEndTurn={() => {}} onBail={() => {}} />,
+    )
+    const brief = container.querySelector('.brief')?.textContent ?? ''
+    expect(brief).toMatch(/call/i)
+    expect(brief).toMatch(/press/i)
+    expect(brief).toMatch(/end the turn/i)
+  })
+})

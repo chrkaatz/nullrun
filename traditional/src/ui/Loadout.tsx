@@ -9,10 +9,19 @@ export function Loadout({ state, onStart }: { state: RunState; onStart: () => vo
     <div className="screen">
       <div className="kicker">NULLRUN · SEED {state.seed}</div>
       <h1>Eight layers.<br />Everyone answers once.</h1>
+      {/* What the game is, before any of its numbers. Someone opening this
+          cold could read the whole screen and still not know what they were
+          being asked to do. */}
+      <p className="brief">
+        A turn-based deckbuilder where your deck is people, not software. You run a team
+        {' '}{CONFIG.layers} layers down a dead arcology toward its core; everyone you call
+        answers once and is gone for the rest of that fight, and the system always tells you
+        exactly what it will do to you before it does it.
+      </p>
       <p className="note">
-        You descend {CONFIG.layers} layers of a dead arcology toward its core. Each operative
-        you call is gone for the rest of that encounter. Heat rises {CONFIG.heatPerTurn} a turn
-        and reaches {CONFIG.heatMax}. The press is free and never enough.
+        Each turn you may call anyone you can afford, press once for free, then end the turn and
+        take the hit you were shown. Heat rises {CONFIG.heatPerTurn} a turn toward
+        {' '}{CONFIG.heatMax}; when it fills, they have you. Time is the real enemy.
       </p>
       <div className="stats rows">
         <span className="stat"><span>Integrity</span><b className="you">{state.integrity}</b></span>
