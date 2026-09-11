@@ -3,6 +3,7 @@ import { OPERATIVES } from '../engine/content'
 import { CONFIG } from '../engine/config'
 import { canCall } from '../engine/encounter'
 import { ceilingAgainst, pressDamage } from '../engine/run'
+import { ART } from './art'
 
 /**
  * A7: every value the player needs is text. Colour marks whose it is — cyan
@@ -31,6 +32,7 @@ export function Encounter({
   return (
     <div className="screen">
       <div className="kicker">LAYER {state.layer} OF {CONFIG.layers} · TURN {state.turns + 1}</div>
+      <img className="art" src={ART[sent.id]} alt="" />
       <div className="row">
         <h1>{sent.name}</h1>
         <span className="chip world">{left} LEFT</span>
@@ -62,7 +64,9 @@ export function Encounter({
         const op = OPERATIVES[slot.id]
         const ok = canCall(state, slot.id)
         return (
-          <button key={slot.id} onClick={() => onCall(slot.id)} disabled={!ok}>
+          <button key={slot.id} className="card" onClick={() => onCall(slot.id)} disabled={!ok}>
+            <img className="tile" src={ART[slot.id]} alt="" />
+            <span className="body">
             <span className="row">
               <b>{op.name}</b>
               <span className={slot.spent ? 'chip' : 'chip you'}>
@@ -71,6 +75,7 @@ export function Encounter({
             </span>
             <span className="note">{op.text}</span>
             <span className="mono">{op.role} · T{op.tier} · COST {op.cost} RAM</span>
+            </span>
           </button>
         )
       })}

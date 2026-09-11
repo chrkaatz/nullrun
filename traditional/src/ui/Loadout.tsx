@@ -1,6 +1,7 @@
 import type { RunState } from '../engine/types'
 import { OPERATIVES } from '../engine/content'
 import { CONFIG } from '../engine/config'
+import { ART } from './art'
 
 export function Loadout({ state, onStart }: { state: RunState; onStart: () => void }) {
   return (
@@ -22,6 +23,7 @@ export function Loadout({ state, onStart }: { state: RunState; onStart: () => vo
         const op = OPERATIVES[slot.id]
         return (
           <div key={slot.id} className="card">
+            <img className="tile" src={ART[slot.id]} alt="" />
             <span className="body">
               <span className="row"><b>{op.name}</b><span className="chip">{op.role} · T{op.tier}</span></span>
               <span className="note">{op.text}</span>
