@@ -154,7 +154,15 @@ button.card { flex-direction: row; align-items: center; gap: 10px; }
   color: var(--you);
 }
 .op.spent .head { background: rgba(125, 136, 140, 0.14); color: var(--dim); }
-.op .face { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; }
+.op .face {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  /* The tiles are portraits; a landscape crop taken from the centre cuts the
+     face in half, so bias the window upward to where the eyes are. */
+  object-position: 50% 32%;
+  display: block;
+}
 .op .nm { padding: 5px 6px 0; font-size: 12px; font-weight: 600; }
 .op .tx { padding: 2px 6px 6px; font-size: 11px; line-height: 1.3; color: var(--dim); }
 
@@ -181,7 +189,7 @@ button.primary:disabled { background: var(--panel); color: var(--dim); border-co
 
 .art {
   width: 100%;
-  height: 96px;
+  height: 72px;
   object-fit: cover;
   border: 1px solid var(--line);
   border-radius: 3px;
