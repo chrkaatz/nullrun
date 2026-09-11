@@ -1,6 +1,7 @@
 import type { RunState } from '../engine/types'
 import { OPERATIVES } from '../engine/content'
 import { CONFIG } from '../engine/config'
+import { turnsAllowed } from '../engine/run'
 import { ART } from './art'
 
 export function Loadout({ state, onStart }: { state: RunState; onStart: () => void }) {
@@ -17,7 +18,7 @@ export function Loadout({ state, onStart }: { state: RunState; onStart: () => vo
         <span className="stat"><span>Integrity</span><b className="you">{state.integrity}</b></span>
         <span className="stat"><span>RAM per turn</span><b className="you">{state.ramMax}</b></span>
         <span className="stat"><span>Team</span><b>{state.team.length} of {CONFIG.teamCap}</b></span>
-        <span className="stat"><span>Turns per node</span><b className="world">{Math.floor(CONFIG.heatMax / CONFIG.heatPerTurn)}</b></span>
+        <span className="stat"><span>Turns per node</span><b className="world">{turnsAllowed(state)}</b></span>
       </div>
       {state.team.map(slot => {
         const op = OPERATIVES[slot.id]

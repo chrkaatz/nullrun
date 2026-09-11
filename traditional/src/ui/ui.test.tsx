@@ -6,8 +6,8 @@ import { App } from './App'
 import { startRun } from '../engine/run'
 import { generateOffers, enterNode } from '../engine/route'
 import { turnsAllowed, turnsRemaining, pressDamage } from '../engine/run'
-import { CONFIG } from '../engine/config'
 import { Encounter } from './Encounter'
+import { Loadout } from './Loadout'
 
 afterEach(cleanup)
 
@@ -56,9 +56,14 @@ describe('Encounter screen', () => {
     const { container } = render(
       <Encounter state={s} onCall={() => {}} onPress={() => {}} onEndTurn={() => {}} onBail={() => {}} />,
     )
-    // The stated figure must be the same one ceilingAgainst budgets presses for.
-    expect(container.textContent).toContain(`${turnsAllowed(s)}`)
-    expect(Math.ceil(CONFIG.heatMax / CONFIG.heatPerTurn)).toBe(turnsAllowed(s))
+    // Scoped to the stat, not the whole screen: at heat 0 the bare digit also
+    // appears in integrity and payout figures, so toContain would pass on those.
+    // And no assertion here re-derives turnsAllowed's formula — comparing the
+    // function to a copy of its own body cannot fail. run.test.ts plays a node
+    // out and counts; that is the oracle.
+    const stat = Array.from(container.querySelectorAll('.stat'))
+      .find(el => el.textContent?.includes('Turns left'))
+    expect(stat?.textContent).toContain(String(turnsAllowed(s)))
   })
 
   it('states the shown intent and its exact value as text (A4, A7)', () => {
@@ -108,5 +113,28 @@ describe('the screen shows figures the engine actually uses', () => {
       expect(container.textContent).toContain(String(turnsRemaining(at)))
       cleanup()
     }
+  })
+})
+
+describe('the screens agree with each other', () => {
+  it('quotes the same turn budget on the loadout and in the encounter', () => {
+    // The loadout used to state Math.floor(heatMax / heatPerTurn) while the
+    // encounter stated the ceil — "Turns per node: 6" on one screen and
+    // "Turns left: 7" on the next. Both now read the engine.
+    const s0 = startRun('AGREE')
+    const { container: load } = render(<Loadout state={s0} onStart={() => {}} />)
+    const perNode = Array.from(load.querySelectorAll('.stat'))
+      .find(el => el.textContent?.includes('Turns per node'))
+    expect(perNode?.textContent).toContain(String(turnsAllowed(s0)))
+    cleanup()
+
+    const s1 = enterNode(generateOffers(s0), 0)
+    const { container: enc } = render(
+      <Encounter state={s1} onCall={() => {}} onPress={() => {}} onEndTurn={() => {}} onBail={() => {}} />,
+    )
+    const left = Array.from(enc.querySelectorAll('.stat'))
+      .find(el => el.textContent?.includes('Turns left'))
+    expect(left?.textContent).toContain(String(turnsRemaining(s1)))
+    expect(turnsRemaining(s1)).toBe(turnsAllowed(s1))
   })
 })
