@@ -39,7 +39,7 @@ Copied from the spec and from the repository's `CLAUDE.md`. Every task's require
 |---|---|
 | `goal-driven/CLAUDE.md` | the method — Part I of the spec, restated as working guidance |
 | `goal-driven/package.json` | check-suite dependencies and scripts; **not** the build's |
-| `goal-driven/docs/PRODUCT.md` | the 239 inherited words of product definition, verbatim |
+| `goal-driven/docs/PRODUCT.md` | the 234 inherited words of product definition, verbatim |
 | `goal-driven/docs/ORACLE.md` | the contract: two surfaces, exact signatures, the `View` shape, all 17 criteria bound to the fields they read |
 | `goal-driven/docs/LOOP.md` | the driver protocol, the iteration prompt, stop conditions |
 | `goal-driven/docs/STATE.md` | overwritten each iteration |
@@ -74,7 +74,7 @@ Copied from the spec and from the repository's `CLAUDE.md`. Every task's require
 
 - [ ] **Step 1: Extract the inherited product definition**
 
-Run, and read the output — it is 239 words and it is the entire product handover:
+Run, and read the output — it is 234 words and it is the entire product handover:
 
 ```bash
 cd /Users/ckaatz/development/experiments/nullrun
@@ -88,7 +88,7 @@ Write the header below, then paste the awk output verbatim beneath it. Do not ed
 ```markdown
 # NULLRUN — product definition
 
-Inherited verbatim from `ephemeral/docs/NULLRUN-SPEC.md`, Part II, at spec 0.9.6. **239 words.**
+Inherited verbatim from `ephemeral/docs/NULLRUN-SPEC.md`, Part II, at spec 0.9.6. **234 words.**
 
 This is the only prose about the game that crosses into this arm. There is no specification and
 no plan. Everything not written here — systems, invariants, tunables, content — is derived by the
@@ -139,7 +139,7 @@ is derived by an unattended loop.
 
 ## What you may read
 
-`docs/PRODUCT.md` (239 words), `docs/ORACLE.md`, `checks/`, and the failure output in
+`docs/PRODUCT.md` (234 words), `docs/ORACLE.md`, `checks/`, and the failure output in
 `checks/report.json`. That is the whole input.
 
 **`checks/fixtures/faithful.mjs` is forbidden input to the loop.** It is a positive control for
@@ -1088,7 +1088,8 @@ export default {
   id: 'A1',
   title: 'Same seed and same input sequence reproduce a run exactly, including its final score.',
   surface: 'oracle',
-  selftest: { hollow: 'pass', faithful: 'pass' },
+  // hollow renders a constant view, so the divergence assertion below fails it.
+  selftest: { hollow: 'fail', faithful: 'pass' },
 
   async run(ctx) {
     const { oracle, assert, note } = ctx;
@@ -1112,11 +1113,14 @@ export default {
         `final view differs on replay of seed ${seed}`);
     }
 
-    // A determinism check that cannot tell two seeds apart is measuring a constant.
-    const a = playRun(oracle, list[0], policy, { maxSteps: 600, collect: false });
-    const b = playRun(oracle, list[0] + 1, policy, { maxSteps: 600, collect: false });
-    assert.ok(!deepEqual(oracle.view(a.final), oracle.view(b.final)),
-      'two different seeds produced identical runs — the seed does nothing');
+    // A determinism check that cannot tell seeds apart is measuring a constant. One pair can
+    // collide by chance on any implementation, so sample eight and require real variety.
+    const finals = seeds(8, 4242).map(s =>
+      JSON.stringify(oracle.view(playRun(oracle, s, policy, { maxSteps: 600, collect: false }).final)));
+    const distinct = new Set(finals).size;
+    assert.ok(distinct >= 2,
+      `eight seeds produced ${distinct} distinct outcome(s) — the seed does nothing`);
+    note(`${distinct} distinct final views across 8 seeds`);
 
     note(`compared ${compared} intermediate states across ${list.length} seeds`);
   }
@@ -1511,10 +1515,14 @@ git commit -m "goal-driven: structural criteria A1 A2 A3 A4 A6 A11 A12 A16"
 - Consumes: `policy`, `playRun`, `seeds`.
 - Produces: `makeLazyPolicy() -> (oracle, state) => Action|null` — a fresh stateful weak policy that presses the free action once per turn and otherwise ends. A13 and A15 both need it.
 
-These three have **no positive control.** `faithful.mjs` is declared to fail all of them, because
-a toy small enough to be a control is not a game. Their only proof of lethality is the mutant set
-in Task 8, and that is stated here so a later reader does not mistake a green A17 at scaffolding
-time for evidence of anything.
+A13, A14 and A17 have **no positive control**: `faithful.mjs` is declared to fail them, because a
+toy small enough to be a control is not a game. Their only proof of lethality is the mutant set in
+Task 8, and that is stated here so a later reader does not mistake a green A17 at scaffolding time
+for evidence of anything.
+
+A15 is the exception. The toy's free action totals 8 against a softest reach of 12 at layer 0, 6
+against 14 at layer 1, and 4 against 16 at layer 2 — so A15 passes it, and is declared to. That is
+a genuine positive control and strictly better than not having one.
 
 - [ ] **Step 1: Add `makeLazyPolicy` to `goal-driven/checks/policy.mjs`**
 
@@ -1633,7 +1641,7 @@ export default {
   id: 'A15',
   title: 'No free or renewable action may trivialise the primary resource.',
   surface: 'oracle',
-  selftest: { hollow: 'fail', faithful: 'fail' },
+  selftest: { hollow: 'fail', faithful: 'pass' },
 
   async run(ctx) {
     const { oracle, assert, note } = ctx;
@@ -2372,17 +2380,20 @@ export const ARTIFACT_MUTANTS = [
   },
   {
     id: 'am-colour-only',
-    label: 'two identical controls are distinguished only by hue',
+    label: 'two identical controls are distinguished only by saturation',
     expect: ['A7'],
     inject: async page => {
       await page.addInitScript(() => {
         window.addEventListener('DOMContentLoaded', () => {
           const s = document.createElement('style');
-          // Equal-luminance hues: distinguishable in colour, identical once desaturated.
+          // One background colour, two saturations. CSS saturate() is defined as an interpolation
+          // toward the luminance matrix, so it preserves 0.2126R+0.7152G+0.0722B exactly: these two
+          // are provably identical after grayscale(1) and plainly different before it. Hand-picked
+          // "equal-luminance" hues are not — #7f7f00 and #00807f differ by 17 levels of grey.
           s.textContent = `
-            button:nth-of-type(odd),[role="button"]:nth-of-type(odd){background:#7f7f00!important;color:#000!important}
-            button:nth-of-type(even),[role="button"]:nth-of-type(even){background:#00807f!important;color:#000!important}
-            button,[role="button"]{font-size:0!important}`;
+            button,[role="button"]{background:#c04000!important;color:#000!important;font-size:0!important;width:100px!important;height:48px!important}
+            button:nth-of-type(odd),[role="button"]:nth-of-type(odd){filter:saturate(3)!important}
+            button:nth-of-type(even),[role="button"]:nth-of-type(even){filter:saturate(0.2)!important}`;
           document.head.appendChild(s);
         });
       });

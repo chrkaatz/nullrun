@@ -19,7 +19,7 @@ no reviewer — write the bar as something executable, then loop until the code 
 The question the arm answers is therefore narrow and worth asking: *given a complete executable
 bar and almost no prose, how much of what the other two arms wrote down was load-bearing?*
 `traditional` needed 9,260 words of plan. `ephemeral` needed 2,988 words of spec. This arm starts
-from 239 words of product definition and a check suite.
+from 234 words of product definition and a check suite.
 
 ---
 
@@ -117,7 +117,7 @@ mutant, and the gate says so before a human ever reads it.
 
 | handed over | derived by the loop |
 |---|---|
-| `ephemeral` spec Part II — identity, primary job, the three pillars (239 words) | every system, invariant, tunable and content table |
+| `ephemeral` spec Part II — identity, primary job, the three pillars (234 words) | every system, invariant, tunable and content table |
 | A1–A17 as prose | — |
 | the check suite and the mutant set, re-expressed against the oracle contract | the entire implementation, and the stack it is written in |
 | the 19 shared art tiles, read from `../ephemeral/art/src/` at build time | — |
