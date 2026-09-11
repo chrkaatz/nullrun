@@ -35,9 +35,18 @@ export function pressDamage(state: RunState): number {
   return CONFIG.pressDamage + (state.layer - 1) * CONFIG.pressGrowth
 }
 
-/** How many turns heat allows in one node. */
+/**
+ * How many turns the player gets to act in one node.
+ *
+ * Heat rises only when a turn is ended, and the turn that pushes it to heatMax
+ * is still a turn you act in — you press, and a kill on that press clears the
+ * node through clearNode before the heat check ever runs. So the count is the
+ * ceiling, not the floor: at heatMax 100 and heatPerTurn 15 the player acts
+ * seven times, not six. Using the floor here understated every ceiling the
+ * route screen shows by a whole press, and let A15 pass on the difference.
+ */
 export function turnsAllowed(_state: RunState): number {
-  return Math.floor(CONFIG.heatMax / CONFIG.heatPerTurn)
+  return Math.ceil(CONFIG.heatMax / CONFIG.heatPerTurn)
 }
 
 /** A12: mitigation never reduces a hit to nothing; pierce ignores guard entirely. */

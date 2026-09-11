@@ -16,7 +16,7 @@ export const CONFIG = {
   payoutFlat: 60,
   payoutPerIntegrity: 1.2,
   corePayout: 600,
-  layerScale: 0.10,
+  layerScale: 0.20,
 } as const
 
 export type Config = typeof CONFIG

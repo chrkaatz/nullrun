@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { startRun, pressDamage, turnsAllowed, ceilingAgainst } from './run'
 import { CONFIG } from './config'
 import { STARTING_TEAM } from './content'
+import { generateOffers, enterNode } from './route'
+import { press, endTurn } from './encounter'
 
 describe('startRun', () => {
   it('starts on the loadout screen at layer 1 with a full team', () => {
@@ -47,9 +49,9 @@ describe('pressDamage', () => {
 })
 
 describe('turnsAllowed', () => {
-  it('is heatMax divided by the per-turn rise', () => {
+  it('is heatMax divided by the per-turn rise, rounded up', () => {
     const s = startRun('T')
-    expect(turnsAllowed(s)).toBe(Math.floor(CONFIG.heatMax / CONFIG.heatPerTurn))
+    expect(turnsAllowed(s)).toBe(Math.ceil(CONFIG.heatMax / CONFIG.heatPerTurn))
   })
 })
 
@@ -72,5 +74,23 @@ describe('ceilingAgainst', () => {
     const s = startRun('C')
     const spent = { ...s, team: s.team.map(t => ({ ...t, spent: true })) }
     expect(ceilingAgainst(spent, 0)).toBeLessThan(ceilingAgainst(s, 0))
+  })
+})
+
+describe('turnsAllowed', () => {
+  it('is the number of turns the player actually gets to act in', () => {
+    // Counted by playing a node out against a sentinel nothing can kill, so the
+    // only thing that ends it is heat. Asserting the formula against itself
+    // would have missed the off-by-one this replaced.
+    let s = enterNode(generateOffers({ ...startRun('TURNS'), layer: 7 }), 0)
+    s = { ...s, integrity: 99_999, sentinel: { ...s.sentinel!, integrity: 99_999, max: 99_999 } }
+    let acted = 0
+    while (s.screen === 'encounter') {
+      const before = s.sentinel!.integrity
+      s = press(s)
+      if (s.sentinel!.integrity < before) acted++
+      s = endTurn(s)
+    }
+    expect(acted).toBe(turnsAllowed(s))
   })
 })

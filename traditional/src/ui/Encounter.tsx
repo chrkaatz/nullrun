@@ -24,10 +24,10 @@ export function Encounter({
   const left = Math.round(sent.integrity)
   const reach = ceilingAgainst(state, sent.guard)
   const press = pressDamage(state)
-  // Turns you can still END and live: heat + n*heatPerTurn must stay under
-  // heatMax, so the turn that reaches it is not one of them. At heat 0 this is
-  // turnsAllowed, which is what the stated ceiling is computed from.
-  const turnsLeft = Math.ceil((CONFIG.heatMax - state.heat) / CONFIG.heatPerTurn) - 1
+  // Turns the player still gets to act in — including the one whose end-turn
+  // fills heat, because a kill on that turn still clears the node. At heat 0
+  // this is turnsAllowed, which is what the stated ceiling budgets presses for.
+  const turnsLeft = Math.ceil((CONFIG.heatMax - state.heat) / CONFIG.heatPerTurn)
 
   return (
     <div className="screen">

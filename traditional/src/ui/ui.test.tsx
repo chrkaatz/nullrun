@@ -53,7 +53,7 @@ describe('Encounter screen', () => {
     )
     // The stated figure must be the same one ceilingAgainst budgets presses for.
     expect(container.textContent).toContain(`${turnsAllowed(s)}`)
-    expect(Math.ceil(CONFIG.heatMax / CONFIG.heatPerTurn) - 1).toBe(turnsAllowed(s))
+    expect(Math.ceil(CONFIG.heatMax / CONFIG.heatPerTurn)).toBe(turnsAllowed(s))
   })
 
   it('states the shown intent and its exact value as text (A4, A7)', () => {
