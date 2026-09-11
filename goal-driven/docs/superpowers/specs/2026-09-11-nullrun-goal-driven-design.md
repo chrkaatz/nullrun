@@ -191,6 +191,7 @@ goal-driven/
   CLAUDE.md            the method, Part I above
   docs/superpowers/    this design, and the implementation plan
   docs/ORACLE.md       the contract, and the 17 criteria bound to it
+  docs/LOOP.md         the driver protocol and the iteration prompt
   docs/ITERATIONS.md   append-only log, one block per iteration
   docs/STATE.md        overwritten each iteration
   checks/              suite, mutants, runner, kill matrix
