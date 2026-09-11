@@ -1,12 +1,8 @@
 import { CONFIG } from './config'
 import { OPERATIVES, SENTINELS } from './content'
-import { mitigate, pressDamage } from './run'
+import { logged, mitigate, pressDamage } from './run'
+import { clearNode } from './spoils'
 import type { OperativeId, RunState } from './types'
-
-/** Prepend a log line, dropping empties so a silent turn leaves no blank row. */
-function logged(state: RunState, note: string): readonly string[] {
-  return note ? [note, ...state.log].slice(0, CONFIG.logLines) : state.log
-}
 
 export function canCall(state: RunState, id: OperativeId): boolean {
   if (state.screen !== 'encounter' || !state.sentinel) return false
@@ -108,9 +104,4 @@ export function endTurn(state: RunState): RunState {
     sentinel: { ...sent, guard, intentIndex: idx, shownIntent: shown, shownDamage: shown.damage },
     log: logged(state, notes.join(' ')),
   }
-}
-
-/** Exported for Task 7, which replaces this stub with the spoils screen. */
-export function clearNode(state: RunState): RunState {
-  return { ...state, screen: 'spoils' }
 }

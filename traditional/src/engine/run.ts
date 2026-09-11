@@ -46,6 +46,11 @@ export function mitigate(op: Operative, guard: number): number {
   return op.pierce ? op.damage : Math.max(CONFIG.minHit, op.damage - guard)
 }
 
+/** Prepend a log line, dropping empties so a silent turn leaves no blank row. */
+export function logged(state: RunState, note: string): readonly string[] {
+  return note ? [note, ...state.log].slice(0, CONFIG.logLines) : state.log
+}
+
 /**
  * The most damage this team could bring against `guard` before heat ends the
  * node: every unspent operative once, plus a press every allowed turn.
