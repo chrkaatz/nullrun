@@ -2,6 +2,7 @@
 export const CONFIG = {
   layers: 8,
   offersPerLayer: 3,
+  /** Starting integrity, not a cap: patches and shields are deliberately unbounded. */
   integrity: 60,
   ram: 3,
   teamCap: 8,

@@ -2,7 +2,7 @@ import { CONFIG } from './config'
 import { DRAFT_POOL, SENTINELS } from './content'
 import { makeRng } from './rng'
 import { generateOffers, enterNode } from './route'
-import { logged } from './run'
+import { ceilingAgainst, logged } from './run'
 import type { OperativeId, RunState } from './types'
 
 function nextOffer(state: RunState): OperativeId | null {
@@ -39,9 +39,13 @@ export function takeOperative(state: RunState): RunState {
 
 export function release(state: RunState, id: OperativeId): RunState {
   if (!state.offer) return state
+  const team = state.team.filter(t => t.id !== id)
+  // A11: releasing someone who is not on the team would let the offer push the
+  // team past the cap. The guard belongs here, not in whoever calls this.
+  if (team.length === state.team.length) return state
   return advanceLayer({
     ...state,
-    team: [...state.team.filter(t => t.id !== id), { id: state.offer, spent: false }],
+    team: [...team, { id: state.offer, spent: false }],
     offer: null,
     releasing: false,
   })
@@ -64,11 +68,15 @@ export function advanceLayer(state: RunState): RunState {
   const layer = state.layer + 1
   if (layer >= CONFIG.layers) {
     const core = SENTINELS.archon
+    // The core is entered directly rather than offered, but its ceiling is
+    // still stated truthfully: computed against the team as it will be inside
+    // the encounter, which enterNode refreshes to fully unspent.
+    const refreshed = { ...state, layer, team: state.team.map(t => ({ ...t, spent: false })) }
     const atCore: RunState = {
-      ...state, layer,
+      ...refreshed,
       offers: [{
         sentinelId: core.id, integrity: core.integrity, guard: core.guard,
-        payout: CONFIG.corePayout, ceiling: 0,
+        payout: CONFIG.corePayout, ceiling: ceilingAgainst(refreshed, core.guard),
       }],
     }
     return enterNode(atCore, 0)

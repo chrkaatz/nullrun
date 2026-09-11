@@ -4,6 +4,7 @@ import { generateOffers, enterNode } from './route'
 import { clearNode, takeOperative, takePatch, release, declineSpoils, advanceLayer, bail } from './spoils'
 import { CONFIG } from './config'
 import { DRAFT_POOL } from './content'
+import { ceilingAgainst } from './run'
 
 const cleared = (seed = 'S') => clearNode(enterNode(generateOffers(startRun(seed)), 0))
 
@@ -61,6 +62,15 @@ describe('spoils choices', () => {
     expect(done.team).toHaveLength(CONFIG.teamCap)
     expect(done.releasing).toBe(false)
   })
+
+  it('refuses to release someone who is not on the team, so the cap holds (A11)', () => {
+    const base = cleared()
+    const offer = DRAFT_POOL.find(id => !base.team.some(t => t.id === id))!
+    const full = { ...base, offer, releasing: true }
+    const out = release(full, 'not-on-the-team')
+    expect(out).toEqual(full)
+    expect(out.team).toHaveLength(full.team.length)
+  })
 })
 
 describe('advanceLayer', () => {
@@ -78,6 +88,13 @@ describe('advanceLayer', () => {
     expect(s.layer).toBe(CONFIG.layers)
     expect(s.screen).toBe('encounter')
     expect(s.sentinel!.id).toBe('archon')
+  })
+
+  it('states a truthful ceiling on the core node (A16)', () => {
+    const s0 = { ...cleared(), layer: CONFIG.layers - 1 }
+    const s = advanceLayer(declineSpoils(s0))
+    expect(s.node!.ceiling).toBe(ceilingAgainst(s, s.node!.guard))
+    expect(s.node!.ceiling).toBeGreaterThan(0)
   })
 })
 
