@@ -14,25 +14,27 @@ export function Loadout({ state, onStart }: { state: RunState; onStart: () => vo
         you call is gone for the rest of that encounter. Heat rises {CONFIG.heatPerTurn} a turn
         and reaches {CONFIG.heatMax}. The press is free and never enough.
       </p>
-      <div className="stats">
+      <div className="stats rows">
         <span className="stat"><span>Integrity</span><b className="you">{state.integrity}</b></span>
         <span className="stat"><span>RAM per turn</span><b className="you">{state.ramMax}</b></span>
         <span className="stat"><span>Team</span><b>{state.team.length} of {CONFIG.teamCap}</b></span>
         <span className="stat"><span>Turns per node</span><b className="world">{turnsAllowed(state)}</b></span>
       </div>
-      {state.team.map(slot => {
-        const op = OPERATIVES[slot.id]
-        return (
-          <div key={slot.id} className="card">
-            <img className="tile" src={ART[slot.id]} alt="" />
-            <span className="body">
-              <span className="row"><b>{op.name}</b><span className="chip">{op.role} · T{op.tier}</span></span>
-              <span className="note">{op.text}</span>
-              <span className="mono">COST {op.cost} RAM</span>
-            </span>
-          </div>
-        )
-      })}
+      {/* Same grid as the encounter: pillar 3 says the whole team is always
+          visible, and a full-width row each pushes the last one off a phone. */}
+      <div className="team">
+        {state.team.map(slot => {
+          const op = OPERATIVES[slot.id]
+          return (
+            <div key={slot.id} className="op">
+              <span className="head"><span>{op.role}</span><span>{op.cost}</span></span>
+              <img className="face" src={ART[slot.id]} alt="" />
+              <span className="nm">{op.name}</span>
+              <span className="tx">{op.text}</span>
+            </div>
+          )
+        })}
+      </div>
       <button className="flat" onClick={onStart}><b>DESCEND</b><span className="chip you">LAYER 1</span></button>
     </div>
   )

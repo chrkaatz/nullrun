@@ -11,6 +11,7 @@ import { Loadout } from './Loadout'
 import { End } from './End'
 import { bail } from '../engine/spoils'
 import { CONFIG } from '../engine/config'
+import { DRAFT_POOL } from '../engine/content'
 
 afterEach(cleanup)
 
@@ -65,7 +66,7 @@ describe('Encounter screen', () => {
     // function to a copy of its own body cannot fail. run.test.ts plays a node
     // out and counts; that is the oracle.
     const stat = Array.from(container.querySelectorAll('.stat'))
-      .find(el => el.textContent?.includes('Turns left'))
+      .find(el => el.textContent?.includes('TURNS LEFT'))
     expect(stat?.textContent).toContain(String(turnsAllowed(s)))
   })
 
@@ -136,7 +137,7 @@ describe('the screens agree with each other', () => {
       <Encounter state={s1} onCall={() => {}} onPress={() => {}} onEndTurn={() => {}} onBail={() => {}} />,
     )
     const left = Array.from(enc.querySelectorAll('.stat'))
-      .find(el => el.textContent?.includes('Turns left'))
+      .find(el => el.textContent?.includes('TURNS LEFT'))
     expect(left?.textContent).toContain(String(turnsRemaining(s1)))
     expect(turnsRemaining(s1)).toBe(turnsAllowed(s1))
   })
@@ -167,5 +168,27 @@ describe('End screen', () => {
       expect(container.textContent).toContain(text)
       cleanup()
     }
+  })
+})
+
+describe('the team is never truncated', () => {
+  it('renders a card for every operative on both screens (pillar 3)', () => {
+    const s0 = startRun('TEAM')
+    const { container: load } = render(<Loadout state={s0} onStart={() => {}} />)
+    expect(load.querySelectorAll('.op')).toHaveLength(s0.team.length)
+    cleanup()
+
+    const s1 = enterNode(generateOffers(s0), 0)
+    const { container: enc } = render(
+      <Encounter state={s1} onCall={() => {}} onPress={() => {}} onEndTurn={() => {}} onBail={() => {}} />,
+    )
+    expect(enc.querySelectorAll('.op')).toHaveLength(s1.team.length)
+    // and at a full team, not just the starting five
+    const full = { ...s1, team: [...DRAFT_POOL, ...s1.team.map(t => t.id)].slice(0, CONFIG.teamCap).map(id => ({ id, spent: false })) }
+    cleanup()
+    const { container: big } = render(
+      <Encounter state={full} onCall={() => {}} onPress={() => {}} onEndTurn={() => {}} onBail={() => {}} />,
+    )
+    expect(big.querySelectorAll('.op')).toHaveLength(CONFIG.teamCap)
   })
 })

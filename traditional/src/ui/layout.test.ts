@@ -56,3 +56,18 @@ describe('A9 no horizontal scroll at 360px', () => {
     expect(ruleFor('.card .body')).toMatch(/min-width:\s*0/)
   })
 })
+
+describe('pillar 3: the whole team is always visible', () => {
+  it('lays the team out as a multi-column grid, not a vertical list', () => {
+    // A full-width row per operative pushed the last one off a 360px screen.
+    // The pillar is a layout property, so this guards the rule that produces it.
+    const team = ruleFor('\\.team')
+    expect(team, 'no .team rule in theme.css').not.toBe('')
+    expect(team).toMatch(/display:\s*grid/)
+    const cols = team.match(/grid-template-columns:\s*repeat\((\d+)/)
+    expect(cols, '.team is not a repeating grid').not.toBeNull()
+    expect(Number(cols![1])).toBeGreaterThanOrEqual(2)
+    // minmax(0, …) is what stops a long operative name widening the column.
+    expect(team).toMatch(/minmax\(0/)
+  })
+})

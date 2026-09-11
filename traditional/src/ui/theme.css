@@ -32,10 +32,10 @@ body {
   padding: 16px 14px 40px;
 }
 
-.screen { display: flex; flex-direction: column; gap: 12px; }
+.screen { display: flex; flex-direction: column; gap: 9px; }
 
 h1 {
-  font-size: 26px;
+  font-size: 22px;
   line-height: 1.15;
   margin: 2px 0 6px;
   font-weight: 600;
@@ -87,25 +87,34 @@ button:disabled { opacity: 0.45; cursor: default; }
 button.flat { flex-direction: row; align-items: center; justify-content: space-between; }
 button.card { flex-direction: row; align-items: center; gap: 10px; }
 
-.stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px 10px;
+.stats { display: flex; flex-wrap: wrap; gap: 5px; }
+.stat {
+  display: flex;
+  gap: 5px;
+  font-size: 11px;
+  letter-spacing: 0.05em;
   border: 1px solid var(--line);
-  border-radius: 3px;
-  padding: 10px 12px;
-  background: var(--panel);
+  border-radius: 2px;
+  padding: 4px 7px;
+  color: var(--dim);
+  white-space: nowrap;
 }
-.stat { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
-.stat b { font-weight: 600; }
-.stat .you { color: var(--you); }
-.stat .world { color: var(--world); }
-.stat .harm { color: var(--harm); }
+.stat b { font-weight: 700; color: var(--text); }
+.stat.you { border-color: rgba(79, 216, 232, 0.45); }
+.stat.you b { color: var(--you); }
+.stat.world { border-color: rgba(232, 163, 61, 0.45); }
+.stat.world b { color: var(--world); }
+.stat.harm { border-color: rgba(198, 90, 58, 0.5); }
+.stat.harm b { color: var(--harm); }
+
+/* Loadout keeps the readable two-column form; only the encounter is dense. */
+.stats.rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; }
+.stats.rows .stat { justify-content: space-between; width: 100%; font-size: 13px; }
 
 .intent {
   border: 1px solid var(--harm);
   border-radius: 3px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   color: var(--harm);
   font-size: 13px;
 }
@@ -113,9 +122,66 @@ button.card { flex-direction: row; align-items: center; gap: 10px; }
 .log { border-top: 1px solid var(--line); padding-top: 8px; }
 .log p { margin: 0 0 3px; font-size: 12px; color: var(--dim); }
 
+/* Pillar 3: the whole team is always visible. A vertical list of full-width
+   rows pushed the last operative off a 360px screen, which is the one thing
+   the pillar forbids. Three to a row fits the roster without scrolling. */
+.team {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.op {
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  align-items: stretch;
+  text-align: left;
+}
+.op .head {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 4px 6px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  background: rgba(79, 216, 232, 0.13);
+  color: var(--you);
+}
+.op.spent .head { background: rgba(125, 136, 140, 0.14); color: var(--dim); }
+.op .face { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; }
+.op .nm { padding: 5px 6px 0; font-size: 12px; font-weight: 600; }
+.op .tx { padding: 2px 6px 6px; font-size: 11px; line-height: 1.3; color: var(--dim); }
+
+.bar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--world); }
+.bar.harm > i { background: var(--harm); }
+
+button.primary {
+  min-height: 56px;
+  align-items: center;
+  justify-content: center;
+  background: var(--you);
+  border-color: var(--you);
+  color: #06222a;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+button.primary:disabled { background: var(--panel); color: var(--dim); border-color: var(--line); }
+
+.pair { display: flex; gap: 8px; }
+.pair > button { flex: 1; }
+.pair > button.narrow { flex: 0 0 32%; }
+.pair > button .chip { align-self: flex-start; }
+
 .art {
   width: 100%;
-  height: 132px;
+  height: 96px;
   object-fit: cover;
   border: 1px solid var(--line);
   border-radius: 3px;
