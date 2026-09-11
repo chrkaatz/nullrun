@@ -70,14 +70,14 @@ Measured 2026-09-11, at `main`.
 
 | | |
 |---|---|
-| commits | 29 |
+| commits | 32 |
 | **engine** | **770 lines** — 8 modules, framework-free, no DOM |
 | **engine tests** | **786 lines** — slightly more test than engine |
-| **ui** | **331 lines** of TSX + 137 lines of CSS and entry point |
-| ui tests | 229 lines |
+| **ui** | **343 lines** of TSX + 203 lines of CSS and entry point |
+| ui tests | 267 lines |
 | shared art | 80 KB generated (19 tiles, base64) — not authored here |
 | **build** | **324 KB `dist/`** — of which ~107 KB is the embedded art |
-| under test | 17 criteria · 91 tests · 10 tasks · 41 recorded rulings |
+| under test | 17 criteria · 93 tests · 10 tasks · 41 recorded rulings |
 
 ### Where the effort actually went
 
@@ -178,6 +178,16 @@ which also produced the best content distribution the arm has had.
 > This arm was handed the first arm's lessons as criteria A13, A14, A15 and A17. It is cheaper
 > partly because it was told. The comparison measures method given those lessons, not method
 > from zero.
+
+**A third handover, recorded rather than pretended away: the encounter layout.** This arm built
+the team as a vertical list of full-width rows, which pushed the last operative below the fold on
+a 360px screen — a direct violation of pillar 3, *"the whole team is always visible"*, and one
+that no criterion caught, because A9 and A10 ask about scroll and target size, not about whether
+the thing the pillar names is on screen. Shown the two side by side, the first arm's grid was
+plainly better, and it was copied: three cards to a row, cost in the card header, a portrait
+large enough to read. The vocabulary stayed this arm's own; only the layout crossed over. So the
+UI is no more a from-zero result than the balance criteria are, and a fourth thing the method
+failed to catch is that a *pillar* — not a criterion — went unenforced for the whole build.
 
 And a second caveat the first arm did not need: of those four handed-over criteria, **two
 arrived with assertions that did not test them** — `A13`'s was a tautology and `A15`'s counted
