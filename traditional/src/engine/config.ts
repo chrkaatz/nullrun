@@ -17,7 +17,6 @@ export const CONFIG = {
   payoutPerIntegrity: 1.2,
   corePayout: 600,
   layerScale: 0.10,
-  unlock: { 1: 400, 2: 1200, 3: 2400 } as Record<number, number>,
 } as const
 
 export type Config = typeof CONFIG
