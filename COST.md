@@ -76,7 +76,7 @@ Measured 2026-09-11, at `main`.
 | **ui** | **343 lines** of TSX + 203 lines of CSS and entry point |
 | ui tests | 267 lines |
 | shared art | 80 KB generated (19 tiles, base64) — not authored here |
-| **build** | **324 KB `dist/`** — of which ~107 KB is the embedded art |
+| **build** | **324 KB `dist/`**; `pnpm bundle` folds it to a **317 KB single file** |
 | under test | 17 criteria · 93 tests · 10 tasks · 41 recorded rulings |
 
 ### Where the effort actually went
@@ -111,6 +111,34 @@ was a formality. `A15` was green because it budgeted six presses where a node gi
 turn that fills heat is still a turn you act in, and a kill on that press clears the node before
 the heat check runs. At the shipped tuning the free action alone cleared the softest node at the
 last two layers, which is the precise thing A15 forbids.
+
+### The artifact, side by side
+
+`pnpm bundle` folds `dist/` into one self-contained `nullrun.html`, so the two arms ship the
+same shape of thing and their sizes can be compared at all. Both embed the same 19 art tiles.
+
+| | ephemeral | traditional |
+|---|---|---|
+| artifact | `nullrun.html`, 116 KB | `dist/nullrun.html`, 317 KB |
+| embedded art | 79 KB | 80 KB |
+| **everything else** | **37 KB** | **237 KB** |
+| hand-written source | 600 lines, one file | 770 engine + 343 UI + 203 CSS |
+| to run it | open the file | `pnpm bundle`, then open the file |
+
+The art is a wash, as it should be — it is the same art. The rest is a **6.4× difference** for
+the same game against the same seventeen criteria, and it is almost entirely React and the
+bundler's runtime. That is the price of the tooling, and it is worth stating plainly because
+nothing else in this comparison shows it: the traditional arm's source is more readable, more
+testable and far better covered, and its shipped artifact is six times the size.
+
+Folding it to one file also took three tries, each a real property of the tooling rather than a
+slip. `String.replace` expands `$&` and `` $` `` in a string replacement, and a minified React
+bundle is full of them, so the first attempt spliced the script tag back into the output
+nineteen times. A module script is blocked over `file://` even with its code inline, so it has
+to become a classic script. And a classic script is not deferred, so in the `<head>` it runs
+before `<div id="app">` exists and React fails with "target container is not a DOM element" —
+`defer` does nothing on an inline script, so position is the only fix. The bundler now throws
+on all three.
 
 ### What caught what
 
