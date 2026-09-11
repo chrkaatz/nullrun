@@ -59,9 +59,99 @@ held and never that the game could be finished.
 
 ---
 
-## traditional
+## traditional — plan-driven, code durable
 
-Not started. Fill this in the same shape when it has a playable, checked build.
+Method: a written design (`traditional/docs/superpowers/specs/`) and an implementation plan
+(`traditional/docs/superpowers/plans/`) carrying the complete code for all ten tasks, executed
+task-by-task with a fresh implementer and a fresh reviewer per task, and a fix round whenever a
+review found something. The code is meant to be kept, not thrown away.
+
+Measured 2026-09-11, at `592975f` on branch `traditional-arm`.
+
+| | |
+|---|---|
+| commits | 18 |
+| **engine** | **694 lines** — 8 modules, framework-free, no DOM |
+| **engine tests** | **685 lines** — very nearly 1:1 with the engine |
+| **ui** | **312 lines** of TSX + 137 lines of CSS and entry point |
+| ui tests | 66 lines |
+| shared art | 80 KB generated (19 tiles, base64) — not authored here |
+| **build** | **324 KB `dist/`** — 312 KB JS, of which ~107 KB is the embedded art |
+| under test | 17 criteria · 76 tests · 10 tasks · 32 recorded rulings |
+
+### Where the effort actually went
+
+Not into writing the game. The plan supplied every line of engine code verbatim, and the four
+tasks that were pure transcription (rng, types, content, run start, route) took one dispatch
+between them and needed no correction beyond a single flavour-text collision.
+
+The effort went into **finding out which of the seventeen criteria were actually testing
+anything.** Of the seventeen, five were passing without teeth when handed over:
+
+| criterion | what was wrong |
+|---|---|
+| `A13` | assertion reduced algebraically to `pressDamage × turnsAllowed > 0` — true for *every possible implementation* |
+| `A3` | asserted a turn count and a cap enforced structurally upstream; nothing about conservation |
+| `A10` | `getComputedStyle(el).minHeight` under jsdom, which never processes the CSS import — reads `''` and passes unconditionally |
+| `A16` | compared the stored ceiling against a fresh call to the same function on the same state |
+| `A17` | instant-encounter fraction has no reachable failure mode under any policy the game permits |
+
+`A13` is the one that matters. It exists to catch "a resource bounded such that the outcome is
+decided before play begins" — and it sat green through the entire life of a bug that did
+exactly that. `advanceLayer`'s route branch never reset `spent` before generating offers, so
+every ceiling shown to the player was computed from the team that had just finished fighting
+rather than the refreshed team they would actually bring. Measured effect across 200 seeds:
+`hunter` and `sweep` were achievable **zero** times at every layer, every node was softened by
+the A2 fallback down to whatever the (wrong) ceiling was, and all 200 runs cleared all seven
+route layers. The route was a formality and the game was one boss fight.
+
+### What caught what
+
+Three layers of verification, and **each one was blind exactly where another worked**:
+
+| defect | unit tests | 200-seed statistical run | opening the app |
+|---|---|---|---|
+| route ceilings computed from the spent team (A16) | blind — the A16 test builds state from `startRun`, where nobody has fought, so both readings agree | **caught it** | — |
+| `wren` refunding RAM above `ramMax` (A3, A11) | **caught it** | blind — no scripted policy reaches it, they spend big hitters first | — |
+| "Turns left 7" where `turnsAllowed` is 6 | blind | blind | **caught it** |
+| every load requesting `/favicon.ico` (A8) | blind — the scan reads `src`, not `index.html` | blind | **caught it** |
+| operative text running together into one line | blind | blind | **caught it** |
+
+No two of those three layers would have been sufficient. That is the arm's main result, and it
+is not a claim about this game: a statistical harness cannot see what its own policy never does,
+a unit test cannot see what it never constructs, and neither can see what is plainly wrong on
+screen.
+
+A fourth lesson, narrower but sharper. One ten-line regression test written *during this run,
+by the controller, while auditing every other test for exactly this*, contained three separate
+false-green traps: the assertions were ordered so the detector never fired, the two sides
+compared different layers so the arithmetic passed with the bug present, and the reported
+evidence number was wrong because of it. Every one was found by **running the test against the
+broken code**, and none by reading it. Reviewers had read it and passed it.
+
+### What it did not deliver
+
+- **A17 is met, not earned, for one sentinel.** `wall` is reached 41 times across ~1600
+  encounters against `cold`'s 980. The criterion says every piece of content is reached; two of
+  four route sentinels needed a content change to get there at all, and the third is thin.
+- **The criteria that measure the measuring instrument are still weak.** `A17`'s
+  "decisions per encounter" counts completed turns, not decisions — a mid-turn clear records one
+  fewer and a heat-out records zero for its final turn, while press-plus-calls inside a turn are
+  never counted. The bias is conservative, so the number stands; the label does not.
+- **`A1` is shallow.** One seed, compared through `RunSummary` only. Nondeterminism that does
+  not move a summary field is invisible to it.
+- **Nothing tests the UI's behaviour**, only its text. The two UI defects above were found by a
+  human-equivalent look at the running app, and nothing in the suite would catch their return.
+
+### The handover caveat
+
+> This arm was handed the first arm's lessons as criteria A13, A14, A15 and A17. It is cheaper
+> partly because it was told. The comparison measures method given those lessons, not method
+> from zero.
+
+And a second caveat the first arm did not need: four of those handed-over criteria arrived with
+assertions that did not test them. Being told the lesson is not the same as being given a check
+that enforces it.
 
 ## goal-driven
 
