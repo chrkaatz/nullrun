@@ -11,7 +11,9 @@ const LAYERS = 3, RAM_MAX = 6, ROSTER_CAP = 3, CLOCK_MAX = 8, FREE_VALUE = 2;
 
 const TOKENS = {
   t1: { value: 3, cost: 1 }, t2: { value: 4, cost: 2 }, t3: { value: 5, cost: 3 },
-  t4: { value: 6, cost: 4 }, t5: { value: 10, cost: 1 }, t6: { value: 7, cost: 5 }
+  t4: { value: 6, cost: 4 }, t5: { value: 7, cost: 5 }, t6: { value: 8, cost: 1 },
+  t7: { value: 9, cost: 2 }, t8: { value: 10, cost: 3 }, t9: { value: 11, cost: 4 },
+  t10: { value: 12, cost: 5 }, t11: { value: 13, cost: 1 }, t12: { value: 14, cost: 2 }
 };
 const ALL = Object.keys(TOKENS);
 
@@ -33,16 +35,30 @@ function burst(s, armour) {
 }
 
 function makeOffers(s) {
+  // Every offer is derived from what the player currently holds (via `burst`), not from the
+  // layer number, so a choice point can never end up with nothing achievable in it (A2). The
+  // three offers are shaped deliberately: the first is always achievable and unarmoured (the
+  // fallback, and the softest — its slack over the free action alone is what A15 measures); the
+  // second is achievable and armoured (what a competent player actually takes, so armour gets
+  // exercised — A12); the third is never achievable, so a real choice, and the unachievable
+  // flag genuinely varies, exists (A13, A16).
   let rs = s.rs;
-  const base = 10 + s.layer * 1;
-  const offers = [];
-  for (let i = 0; i < 3; i++) {
-    const [r, ns] = rand(rs); rs = ns;
-    offers.push({
-      id: `n${s.layer}_${i}`, label: `node ${s.layer}-${i}`,
-      cost: i, reach: base + i * 3 + (r < 0.5 ? 0 : 1), armour: i
-    });
-  }
+  const freeTotal = FREE_VALUE * turnsAllowed(s);
+  const [r0, rs1] = rand(rs);
+  const [r1, rs2] = rand(rs1);
+  const [r2, rs3] = rand(rs2);
+  rs = rs3;
+  const slack0 = 2 + Math.floor(r0 * 2);   // 2..3, added: stays achievable, stays above freeTotal
+  const slack1 = 1 + Math.floor(r1 * 2);   // 1..2, subtracted: stays achievable
+  const slack2 = 3 + Math.floor(r2 * 2);   // 3..4, added: stays unachievable
+  const offers = [
+    { id: `n${s.layer}_0`, label: `node ${s.layer}-0`, cost: 0,
+      reach: freeTotal + slack0, armour: 0 },
+    { id: `n${s.layer}_1`, label: `node ${s.layer}-1`, cost: 1,
+      reach: Math.max(1, burst(s, 1) - slack1), armour: 1 },
+    { id: `n${s.layer}_2`, label: `node ${s.layer}-2`, cost: 2,
+      reach: burst(s, 2) + slack2, armour: 2 }
+  ];
   return { offers, rs };
 }
 
