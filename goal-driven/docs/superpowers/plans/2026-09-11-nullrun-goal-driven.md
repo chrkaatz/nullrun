@@ -1238,7 +1238,7 @@ export default {
 
   async run(ctx) {
     const { oracle, assert, note } = ctx;
-    let turns = 0, seedsUsed = 0;
+    let turns = 0, seedsUsed = 0, probedCandidates = 0;
 
     for (const seed of seeds(200)) {
       if (turns >= 500) break;
@@ -1299,23 +1299,50 @@ export default {
           assert.deepEqual(removed, [], `a take removed ${removed.join(',')} from the roster (${where})`);
         }
 
-        // Credits and ram are resources too, and a floor check says only that they never go
-        // negative — nothing about silent creation, which is what this criterion names.
-        const sameScreen = oracle.view(before).screen === oracle.view(after).screen;
-        if (sameScreen) {
-          assert.ok(a.credits <= b.credits,
-            `credits rose from ${b.credits} to ${a.credits} with no screen change (${where})`);
-          if (action.type !== 'end') {
-            assert.ok(a.ram <= b.ram, `ram rose from ${b.ram} to ${a.ram} on a ${action.type} (${where})`);
-          }
+        // Roster growth is bounded everywhere, not only on the actions that name it. `onward`
+        // is where a payout legitimately grants a token, which is exactly why an unconstrained
+        // `onward` is the natural route for silent creation.
+        assert.ok(added.length <= 1,
+          `${action.type} added ${added.length} roster entries at once (${where})`);
+        for (const id of added) {
+          assert.ok(!b.burned.includes(id),
+            `${action.type} returned burned id ${id} to the roster (${where})`);
         }
 
-        // A declared price must be the price actually charged.
-        if (action.type === 'take') {
-          const offer = oracle.allOffers(before).find(o => o.id === action.id);
-          if (offer) {
-            assert.equal(b.credits - a.credits, offer.cost,
-              `a take charged ${b.credits - a.credits} for an offer priced ${offer.cost} (${where})`);
+        // Ram never rises silently within a screen — the existing rule, unchanged.
+        const sameScreen = oracle.view(before).screen === oracle.view(after).screen;
+        if (sameScreen && action.type !== 'end') {
+          assert.ok(a.ram <= b.ram, `ram rose from ${b.ram} to ${a.ram} on a ${action.type} (${where})`);
+        }
+
+        // Credits rise only where the contract says value is awarded — a payout — or out of the
+        // loadout, where a run is equipped. Gating this on an unchanged screen let `bail` and
+        // every other transition through.
+        if (a.credits > b.credits) {
+          const aScreen = oracle.view(after).screen, bScreen = oracle.view(before).screen;
+          assert.ok(aScreen === 'payout' || bScreen === 'loadout',
+            `credits rose from ${b.credits} to ${a.credits} outside a payout (${where})`);
+        }
+
+        // Probe the paths the policy never takes. A statistical harness cannot see what its own
+        // policy never does, so ask the oracle directly: every action that is LEGAL here gets
+        // checked, whether or not the player chose it. `apply` is pure, so this costs nothing
+        // but a call and cannot disturb the run in progress.
+        for (const cand of oracle.legalActions(before)) {
+          if (cand.type === 'take') {
+            const offer = oracle.allOffers(before).find(o => o.id === cand.id);
+            assert.ok(offer,
+              `a take is legal for ${cand.id}, which allOffers does not list (${where})`);
+            const probed = oracle.view(oracle.apply(before, cand)).resources;
+            assert.equal(b.credits - probed.credits, offer.cost,
+              `taking ${cand.id} charged ${b.credits - probed.credits} against a declared price of ${offer.cost} (${where})`);
+            probedCandidates += 1;
+          }
+          if (cand.type === 'bail') {
+            const probed = oracle.view(oracle.apply(before, cand)).resources;
+            assert.ok(probed.credits <= b.credits,
+              `bailing raised credits from ${b.credits} to ${probed.credits} (${where})`);
+            probedCandidates += 1;
           }
         }
 
@@ -1325,6 +1352,7 @@ export default {
 
     assert.ok(turns >= 500, `only ${turns} turns audited across ${seedsUsed} seeds, need 500`);
     note(`audited ${turns} turns across ${seedsUsed} seeds`);
+    note(`probed ${probedCandidates} legal take and bail actions the policy did not choose`);
   }
 };
 ```
@@ -1442,7 +1470,6 @@ export default {
 
     for (const seed of seeds(60)) {
       const run = playRun(oracle, seed, policy, { maxSteps: 600 });
-      let prev = null;
       for (const v of run.views) {
         states += 1;
         assert.ok(v.resources.rosterCap > 0, 'rosterCap is not a cap');
@@ -1458,19 +1485,19 @@ export default {
 
         if (v.resources.roster.length === v.resources.rosterCap) rosterAtCap += 1;
         if (v.resources.ram === v.resources.ramMax) ramAtCap += 1;
+      }
 
-        // A cap that falls is tracking the resource it claims to bound. Real caps hold steady, or
-        // rise with an upgrade. This is what separates a bound from a mirror — every other
-        // assertion here is satisfied by a cap defined as "whatever the player currently has".
-        if (prev) {
-          assert.ok(v.resources.rosterCap >= prev.resources.rosterCap,
-            `rosterCap fell from ${prev.resources.rosterCap} to ${v.resources.rosterCap} (seed ${seed})`);
-          assert.ok(v.resources.ramMax >= prev.resources.ramMax,
-            `ramMax fell from ${prev.resources.ramMax} to ${v.resources.ramMax} (seed ${seed})`);
-          assert.ok(v.pressure.max >= prev.pressure.max,
-            `pressure ceiling fell from ${prev.pressure.max} to ${v.pressure.max} (seed ${seed})`);
-        }
-        prev = v;
+      // A cap that moves is tracking its resource. A cap that only ever falls is a mirror; one
+      // that only ever rises is a ratchet, and a ratchet is never exceeded either. Neither is a
+      // bound. Real caps hold for the length of a run.
+      const first = run.views[0];
+      for (const v of run.views) {
+        assert.equal(v.resources.rosterCap, first.resources.rosterCap,
+          `rosterCap changed from ${first.resources.rosterCap} to ${v.resources.rosterCap} mid-run (seed ${seed})`);
+        assert.equal(v.resources.ramMax, first.resources.ramMax,
+          `ramMax changed from ${first.resources.ramMax} to ${v.resources.ramMax} mid-run (seed ${seed})`);
+        assert.equal(v.pressure.max, first.pressure.max,
+          `pressure ceiling changed from ${first.pressure.max} to ${v.pressure.max} mid-run (seed ${seed})`);
       }
     }
 
