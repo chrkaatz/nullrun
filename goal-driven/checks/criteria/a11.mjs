@@ -13,6 +13,7 @@ export default {
 
     for (const seed of seeds(60)) {
       const run = playRun(oracle, seed, policy, { maxSteps: 600 });
+      let prev = null;
       for (const v of run.views) {
         states += 1;
         assert.ok(v.resources.rosterCap > 0, 'rosterCap is not a cap');
@@ -28,6 +29,19 @@ export default {
 
         if (v.resources.roster.length === v.resources.rosterCap) rosterAtCap += 1;
         if (v.resources.ram === v.resources.ramMax) ramAtCap += 1;
+
+        // A cap that falls is tracking the resource it claims to bound. Real caps hold steady, or
+        // rise with an upgrade. This is what separates a bound from a mirror — every other
+        // assertion here is satisfied by a cap defined as "whatever the player currently has".
+        if (prev) {
+          assert.ok(v.resources.rosterCap >= prev.resources.rosterCap,
+            `rosterCap fell from ${prev.resources.rosterCap} to ${v.resources.rosterCap} (seed ${seed})`);
+          assert.ok(v.resources.ramMax >= prev.resources.ramMax,
+            `ramMax fell from ${prev.resources.ramMax} to ${v.resources.ramMax} (seed ${seed})`);
+          assert.ok(v.pressure.max >= prev.pressure.max,
+            `pressure ceiling fell from ${prev.pressure.max} to ${v.pressure.max} (seed ${seed})`);
+        }
+        prev = v;
       }
     }
 

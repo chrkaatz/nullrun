@@ -35,7 +35,9 @@ export default {
         const a = oracle.view(after);
         assert.equal(a.pressure.value - b.pressure.value, b.incoming.value,
           `harm landed at ${a.pressure.value - b.pressure.value}, declared ${b.incoming.value} (seed ${seed}, turn ${b.turn})`);
-        landed += 1;
+        // A guard that counts zero-valued events as landings is satisfied by an oracle that
+        // never harms the player at all — which is the thing this guard's own message denies.
+        if (b.incoming.value > 0) landed += 1;
       }
     }
 

@@ -49,6 +49,47 @@ export default {
         if (action.type === 'take') {
           assert.ok(a.roster.length - b.roster.length <= 1, `a take added more than one (${where})`);
         }
+
+        const added = a.roster.filter(id => !b.roster.includes(id));
+        const removed = b.roster.filter(id => !a.roster.includes(id));
+
+        // Roster membership moves only through the actions meant to move it, and only by the
+        // amount they declare. Without this, a call that removes its own id while conjuring a
+        // fresh one satisfies every other assertion in this file.
+        if (action.type === 'call' || action.type === 'release') {
+          assert.deepEqual(added, [], `a ${action.type} added ${added.join(',')} to the roster (${where})`);
+          assert.equal(removed.length, 1,
+            `a ${action.type} removed ${removed.length} roster entries, expected 1 (${where})`);
+          assert.equal(removed[0], action.id, `a ${action.type} removed the wrong id (${where})`);
+        }
+        if (action.type === 'free' || action.type === 'end' || action.type === 'bail') {
+          assert.deepEqual(added, [], `a ${action.type} added ${added.join(',')} to the roster (${where})`);
+          assert.deepEqual(removed, [], `a ${action.type} removed ${removed.join(',')} from the roster (${where})`);
+        }
+        if (action.type === 'take') {
+          assert.deepEqual(removed, [], `a take removed ${removed.join(',')} from the roster (${where})`);
+        }
+
+        // Credits and ram are resources too, and a floor check says only that they never go
+        // negative — nothing about silent creation, which is what this criterion names.
+        const sameScreen = oracle.view(before).screen === oracle.view(after).screen;
+        if (sameScreen) {
+          assert.ok(a.credits <= b.credits,
+            `credits rose from ${b.credits} to ${a.credits} with no screen change (${where})`);
+          if (action.type !== 'end') {
+            assert.ok(a.ram <= b.ram, `ram rose from ${b.ram} to ${a.ram} on a ${action.type} (${where})`);
+          }
+        }
+
+        // A declared price must be the price actually charged.
+        if (action.type === 'take') {
+          const offer = oracle.allOffers(before).find(o => o.id === action.id);
+          if (offer) {
+            assert.equal(b.credits - a.credits, offer.cost,
+              `a take charged ${b.credits - a.credits} for an offer priced ${offer.cost} (${where})`);
+          }
+        }
+
         if (action.type === 'end') turns += 1;
       }
     }
