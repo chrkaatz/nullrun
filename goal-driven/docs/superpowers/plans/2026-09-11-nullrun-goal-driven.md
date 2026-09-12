@@ -1278,6 +1278,47 @@ export default {
         if (action.type === 'take') {
           assert.ok(a.roster.length - b.roster.length <= 1, `a take added more than one (${where})`);
         }
+
+        const added = a.roster.filter(id => !b.roster.includes(id));
+        const removed = b.roster.filter(id => !a.roster.includes(id));
+
+        // Roster membership moves only through the actions meant to move it, and only by the
+        // amount they declare. Without this, a call that removes its own id while conjuring a
+        // fresh one satisfies every other assertion in this file.
+        if (action.type === 'call' || action.type === 'release') {
+          assert.deepEqual(added, [], `a ${action.type} added ${added.join(',')} to the roster (${where})`);
+          assert.equal(removed.length, 1,
+            `a ${action.type} removed ${removed.length} roster entries, expected 1 (${where})`);
+          assert.equal(removed[0], action.id, `a ${action.type} removed the wrong id (${where})`);
+        }
+        if (action.type === 'free' || action.type === 'end' || action.type === 'bail') {
+          assert.deepEqual(added, [], `a ${action.type} added ${added.join(',')} to the roster (${where})`);
+          assert.deepEqual(removed, [], `a ${action.type} removed ${removed.join(',')} from the roster (${where})`);
+        }
+        if (action.type === 'take') {
+          assert.deepEqual(removed, [], `a take removed ${removed.join(',')} from the roster (${where})`);
+        }
+
+        // Credits and ram are resources too, and a floor check says only that they never go
+        // negative — nothing about silent creation, which is what this criterion names.
+        const sameScreen = oracle.view(before).screen === oracle.view(after).screen;
+        if (sameScreen) {
+          assert.ok(a.credits <= b.credits,
+            `credits rose from ${b.credits} to ${a.credits} with no screen change (${where})`);
+          if (action.type !== 'end') {
+            assert.ok(a.ram <= b.ram, `ram rose from ${b.ram} to ${a.ram} on a ${action.type} (${where})`);
+          }
+        }
+
+        // A declared price must be the price actually charged.
+        if (action.type === 'take') {
+          const offer = oracle.allOffers(before).find(o => o.id === action.id);
+          if (offer) {
+            assert.equal(b.credits - a.credits, offer.cost,
+              `a take charged ${b.credits - a.credits} for an offer priced ${offer.cost} (${where})`);
+          }
+        }
+
         if (action.type === 'end') turns += 1;
       }
     }
@@ -1328,7 +1369,9 @@ export default {
         const a = oracle.view(after);
         assert.equal(a.pressure.value - b.pressure.value, b.incoming.value,
           `harm landed at ${a.pressure.value - b.pressure.value}, declared ${b.incoming.value} (seed ${seed}, turn ${b.turn})`);
-        landed += 1;
+        // A guard that counts zero-valued events as landings is satisfied by an oracle that
+        // never harms the player at all — which is the thing this guard's own message denies.
+        if (b.incoming.value > 0) landed += 1;
       }
     }
 
@@ -1399,6 +1442,7 @@ export default {
 
     for (const seed of seeds(60)) {
       const run = playRun(oracle, seed, policy, { maxSteps: 600 });
+      let prev = null;
       for (const v of run.views) {
         states += 1;
         assert.ok(v.resources.rosterCap > 0, 'rosterCap is not a cap');
@@ -1414,6 +1458,19 @@ export default {
 
         if (v.resources.roster.length === v.resources.rosterCap) rosterAtCap += 1;
         if (v.resources.ram === v.resources.ramMax) ramAtCap += 1;
+
+        // A cap that falls is tracking the resource it claims to bound. Real caps hold steady, or
+        // rise with an upgrade. This is what separates a bound from a mirror — every other
+        // assertion here is satisfied by a cap defined as "whatever the player currently has".
+        if (prev) {
+          assert.ok(v.resources.rosterCap >= prev.resources.rosterCap,
+            `rosterCap fell from ${prev.resources.rosterCap} to ${v.resources.rosterCap} (seed ${seed})`);
+          assert.ok(v.resources.ramMax >= prev.resources.ramMax,
+            `ramMax fell from ${prev.resources.ramMax} to ${v.resources.ramMax} (seed ${seed})`);
+          assert.ok(v.pressure.max >= prev.pressure.max,
+            `pressure ceiling fell from ${prev.pressure.max} to ${v.pressure.max} (seed ${seed})`);
+        }
+        prev = v;
       }
     }
 
