@@ -1270,6 +1270,11 @@ export default {
           assert.equal(a.burned.at(-1), action.id, `a call burned the wrong id (${where})`);
           assert.ok(b.roster.includes(action.id) && !a.roster.includes(action.id),
             `a call did not remove its id from the roster (${where})`);
+
+          // The contract defines a call as spending a resource to act. A call that costs
+          // nothing makes the resource decorative, and no other criterion reads a call's price.
+          assert.ok(a.ram < b.ram,
+            `a call left ram at ${b.ram} — it spent nothing (${where})`);
         }
         if (action.type === 'release') {
           assert.equal(a.roster.length, b.roster.length - 1, `a release removed other than one (${where})`);
@@ -1315,13 +1320,14 @@ export default {
           assert.ok(a.ram <= b.ram, `ram rose from ${b.ram} to ${a.ram} on a ${action.type} (${where})`);
         }
 
-        // Credits rise only where the contract says value is awarded — a payout — or out of the
-        // loadout, where a run is equipped. Gating this on an unchanged screen let `bail` and
-        // every other transition through.
+        // Credits may rise only on the action that ENTERS a payout, or out of the loadout where
+        // a run is equipped. Permitting any action whose result is a payout screen lets an
+        // action taken while already there mint freely.
         if (a.credits > b.credits) {
-          const aScreen = oracle.view(after).screen, bScreen = oracle.view(before).screen;
-          assert.ok(aScreen === 'payout' || bScreen === 'loadout',
-            `credits rose from ${b.credits} to ${a.credits} outside a payout (${where})`);
+          const bScreen = oracle.view(before).screen, aScreen = oracle.view(after).screen;
+          const entersPayout = bScreen !== 'payout' && aScreen === 'payout';
+          assert.ok(entersPayout || bScreen === 'loadout',
+            `${action.type} raised credits from ${b.credits} to ${a.credits} without entering a payout (${where})`);
         }
 
         // Probe the paths the policy never takes. A statistical harness cannot see what its own
@@ -1329,20 +1335,22 @@ export default {
         // checked, whether or not the player chose it. `apply` is pure, so this costs nothing
         // but a call and cannot disturb the run in progress.
         for (const cand of oracle.legalActions(before)) {
+          const probedView = oracle.view(oracle.apply(before, cand));
+          probedCandidates += 1;
+
+          const bScreen = oracle.view(before).screen;
+          const entersPayout = bScreen !== 'payout' && probedView.screen === 'payout';
+          if (probedView.resources.credits > b.credits) {
+            assert.ok(entersPayout || bScreen === 'loadout',
+              `${cand.type} raised credits from ${b.credits} to ${probedView.resources.credits} without entering a payout (${where})`);
+          }
+
           if (cand.type === 'take') {
             const offer = oracle.allOffers(before).find(o => o.id === cand.id);
             assert.ok(offer,
               `a take is legal for ${cand.id}, which allOffers does not list (${where})`);
-            const probed = oracle.view(oracle.apply(before, cand)).resources;
-            assert.equal(b.credits - probed.credits, offer.cost,
-              `taking ${cand.id} charged ${b.credits - probed.credits} against a declared price of ${offer.cost} (${where})`);
-            probedCandidates += 1;
-          }
-          if (cand.type === 'bail') {
-            const probed = oracle.view(oracle.apply(before, cand)).resources;
-            assert.ok(probed.credits <= b.credits,
-              `bailing raised credits from ${b.credits} to ${probed.credits} (${where})`);
-            probedCandidates += 1;
+            assert.equal(b.credits - probedView.resources.credits, offer.cost,
+              `taking ${cand.id} charged ${b.credits - probedView.resources.credits} against a declared price of ${offer.cost} (${where})`);
           }
         }
 
@@ -1352,7 +1360,7 @@ export default {
 
     assert.ok(turns >= 500, `only ${turns} turns audited across ${seedsUsed} seeds, need 500`);
     note(`audited ${turns} turns across ${seedsUsed} seeds`);
-    note(`probed ${probedCandidates} legal take and bail actions the policy did not choose`);
+    note(`probed ${probedCandidates} legal candidate actions, chosen or not, for silent credit creation`);
   }
 };
 ```
@@ -1467,11 +1475,14 @@ export default {
   async run(ctx) {
     const { oracle, assert, note } = ctx;
     let rosterAtCap = 0, ramAtCap = 0, states = 0;
+    let peakPressure = 0, pressureCeiling = 0;
 
     for (const seed of seeds(60)) {
       const run = playRun(oracle, seed, policy, { maxSteps: 600 });
       for (const v of run.views) {
         states += 1;
+        peakPressure = Math.max(peakPressure, v.pressure.value);
+        pressureCeiling = Math.max(pressureCeiling, v.pressure.max);
         assert.ok(v.resources.rosterCap > 0, 'rosterCap is not a cap');
         assert.ok(v.resources.ramMax > 0, 'ramMax is not a cap');
         assert.ok(v.pressure.max > 0, 'the pressure meter has no ceiling');
@@ -1505,7 +1516,17 @@ export default {
     assert.ok(rosterAtCap > 0,
       'the roster cap was never reached across 60 seeds — the check proved nothing');
     assert.ok(ramAtCap > 0, 'the ram ceiling was never reached across 60 seeds');
+
+    // A ceiling the meter never comes near bounds nothing. This cannot demand the ceiling be
+    // reached — a game a competent player wins is a game where the meter usually does not fill —
+    // so it demands the ceiling be of the same order as the values that climb toward it. The
+    // factor of two is a judgement, and it is the loosest bound that still rejects a ceiling
+    // chosen to be unreachable.
+    assert.ok(peakPressure * 2 >= pressureCeiling,
+      `pressure peaked at ${peakPressure} against a ceiling of ${pressureCeiling} — the ceiling bounds nothing`);
+
     note(`${states} states; roster at cap ${rosterAtCap}, ram at ceiling ${ramAtCap}`);
+    note(`pressure peaked at ${peakPressure} against ceiling ${pressureCeiling}`);
   }
 };
 ```
