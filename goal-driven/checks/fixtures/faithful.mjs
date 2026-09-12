@@ -24,14 +24,26 @@ const clone = x => JSON.parse(JSON.stringify(x));
 function incomingFor(layer) { return 2 + layer; }
 
 function turnsAllowed(s) {
-  // Counts the turn on which the clock fills. That turn is still a turn you act in.
+  // Counts the turn on which the clock fills. That turn is still a turn you act in. Valid only
+  // while `s.clock` is the live clock of the encounter in progress — i.e. inside `view()`.
   const step = incomingFor(s.layer);
   return Math.floor((CLOCK_MAX - s.clock - 1) / step) + 1;
 }
 
+function turnsOnEntry(layer) {
+  // What `turnsAllowed` will read once an offer is taken: entering an encounter always resets
+  // the clock to 0 (see `apply`'s 'offers' branch), so the turn count an offer is priced against
+  // must be computed from a clock of 0, never from whatever clock survived the last encounter.
+  // `burst` and `makeOffers` price offers before that reset has happened, so they use this
+  // instead of `turnsAllowed(s)` — using the stale `s.clock` there priced offers against a turn
+  // count the player would never actually be given.
+  const step = incomingFor(layer);
+  return Math.floor((CLOCK_MAX - 1) / step) + 1;
+}
+
 function burst(s, armour) {
   const fromRoster = s.roster.reduce((t, id) => t + Math.max(1, TOKENS[id].value - armour), 0);
-  return fromRoster + FREE_VALUE * turnsAllowed(s);
+  return fromRoster + FREE_VALUE * turnsOnEntry(s.layer);
 }
 
 function makeOffers(s) {
@@ -43,7 +55,7 @@ function makeOffers(s) {
   // exercised — A12); the third is never achievable, so a real choice, and the unachievable
   // flag genuinely varies, exists (A13, A16).
   let rs = s.rs;
-  const freeTotal = FREE_VALUE * turnsAllowed(s);
+  const freeTotal = FREE_VALUE * turnsOnEntry(s.layer);
   const [r0, rs1] = rand(rs);
   const [r1, rs2] = rand(rs1);
   const [r2, rs3] = rand(rs2);
