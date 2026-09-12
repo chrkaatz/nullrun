@@ -9,7 +9,7 @@ export default {
 
   async run(ctx) {
     const { oracle, assert, note } = ctx;
-    let turns = 0, seedsUsed = 0;
+    let turns = 0, seedsUsed = 0, probedCandidates = 0;
 
     for (const seed of seeds(200)) {
       if (turns >= 500) break;
@@ -95,15 +95,26 @@ export default {
             `credits rose from ${b.credits} to ${a.credits} outside a payout (${where})`);
         }
 
-        // A take must be for an offer that was actually on the table, and must charge its
-        // declared price. Without the first assertion the second is optional for any oracle
-        // willing to omit the offer it charges for.
-        if (action.type === 'take') {
-          const offer = oracle.allOffers(before).find(o => o.id === action.id);
-          assert.ok(offer,
-            `a take was legal for ${action.id}, which allOffers does not list (${where})`);
-          assert.equal(b.credits - a.credits, offer.cost,
-            `a take charged ${b.credits - a.credits} for an offer priced ${offer.cost} (${where})`);
+        // Probe the paths the policy never takes. A statistical harness cannot see what its own
+        // policy never does, so ask the oracle directly: every action that is LEGAL here gets
+        // checked, whether or not the player chose it. `apply` is pure, so this costs nothing
+        // but a call and cannot disturb the run in progress.
+        for (const cand of oracle.legalActions(before)) {
+          if (cand.type === 'take') {
+            const offer = oracle.allOffers(before).find(o => o.id === cand.id);
+            assert.ok(offer,
+              `a take is legal for ${cand.id}, which allOffers does not list (${where})`);
+            const probed = oracle.view(oracle.apply(before, cand)).resources;
+            assert.equal(b.credits - probed.credits, offer.cost,
+              `taking ${cand.id} charged ${b.credits - probed.credits} against a declared price of ${offer.cost} (${where})`);
+            probedCandidates += 1;
+          }
+          if (cand.type === 'bail') {
+            const probed = oracle.view(oracle.apply(before, cand)).resources;
+            assert.ok(probed.credits <= b.credits,
+              `bailing raised credits from ${b.credits} to ${probed.credits} (${where})`);
+            probedCandidates += 1;
+          }
         }
 
         if (action.type === 'end') turns += 1;
@@ -112,5 +123,6 @@ export default {
 
     assert.ok(turns >= 500, `only ${turns} turns audited across ${seedsUsed} seeds, need 500`);
     note(`audited ${turns} turns across ${seedsUsed} seeds`);
+    note(`probed ${probedCandidates} legal take and bail actions the policy did not choose`);
   }
 };
