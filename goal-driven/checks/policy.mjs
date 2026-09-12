@@ -51,3 +51,39 @@ export function policy(oracle, state) {
   }
   return best;
 }
+
+// A deliberately weak player: takes the cheapest option, presses the free action once a turn,
+// and otherwise ends the turn. Stateful, so build a fresh one per run.
+//
+// This is the control for "does play matter". If the weak player does as well as the competent
+// one, the outcome was settled before either of them started — which is exactly A13.
+export function makeLazyPolicy() {
+  let lastKey = null;
+  return function lazy(oracle, state) {
+    const legal = oracle.legalActions(state);
+    if (!legal || legal.length === 0) return null;
+    const v = oracle.view(state);
+
+    if (v.screen === 'offers') {
+      const ranked = oracle.allOffers(state).slice()
+        .sort((a, b) => a.reach - b.reach || String(a.id).localeCompare(String(b.id)));
+      for (const o of ranked) {
+        const take = legal.find(a => a.type === 'take' && a.id === o.id);
+        if (take) return take;
+      }
+      return legal.find(a => a.type !== 'bail') || legal[0];
+    }
+
+    if (v.screen !== 'encounter') {
+      return legal.find(a => a.type === 'onward') || legal.find(a => a.type !== 'bail') || legal[0];
+    }
+
+    const key = `${v.layer}:${v.turn}`;
+    if (key !== lastKey) {
+      lastKey = key;
+      const free = legal.find(a => a.type === 'free');
+      if (free) return free;
+    }
+    return legal.find(a => a.type === 'end') || legal.find(a => a.type !== 'bail') || legal[0];
+  };
+}
