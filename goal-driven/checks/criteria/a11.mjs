@@ -10,11 +10,14 @@ export default {
   async run(ctx) {
     const { oracle, assert, note } = ctx;
     let rosterAtCap = 0, ramAtCap = 0, states = 0;
+    let peakPressure = 0, pressureCeiling = 0;
 
     for (const seed of seeds(60)) {
       const run = playRun(oracle, seed, policy, { maxSteps: 600 });
       for (const v of run.views) {
         states += 1;
+        peakPressure = Math.max(peakPressure, v.pressure.value);
+        pressureCeiling = Math.max(pressureCeiling, v.pressure.max);
         assert.ok(v.resources.rosterCap > 0, 'rosterCap is not a cap');
         assert.ok(v.resources.ramMax > 0, 'ramMax is not a cap');
         assert.ok(v.pressure.max > 0, 'the pressure meter has no ceiling');
@@ -48,6 +51,16 @@ export default {
     assert.ok(rosterAtCap > 0,
       'the roster cap was never reached across 60 seeds — the check proved nothing');
     assert.ok(ramAtCap > 0, 'the ram ceiling was never reached across 60 seeds');
+
+    // A ceiling the meter never comes near bounds nothing. This cannot demand the ceiling be
+    // reached — a game a competent player wins is a game where the meter usually does not fill —
+    // so it demands the ceiling be of the same order as the values that climb toward it. The
+    // factor of two is a judgement, and it is the loosest bound that still rejects a ceiling
+    // chosen to be unreachable.
+    assert.ok(peakPressure * 2 >= pressureCeiling,
+      `pressure peaked at ${peakPressure} against a ceiling of ${pressureCeiling} — the ceiling bounds nothing`);
+
     note(`${states} states; roster at cap ${rosterAtCap}, ram at ceiling ${ramAtCap}`);
+    note(`pressure peaked at ${peakPressure} against ceiling ${pressureCeiling}`);
   }
 };
