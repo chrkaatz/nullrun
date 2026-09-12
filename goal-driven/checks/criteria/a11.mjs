@@ -13,7 +13,6 @@ export default {
 
     for (const seed of seeds(60)) {
       const run = playRun(oracle, seed, policy, { maxSteps: 600 });
-      let prev = null;
       for (const v of run.views) {
         states += 1;
         assert.ok(v.resources.rosterCap > 0, 'rosterCap is not a cap');
@@ -29,19 +28,19 @@ export default {
 
         if (v.resources.roster.length === v.resources.rosterCap) rosterAtCap += 1;
         if (v.resources.ram === v.resources.ramMax) ramAtCap += 1;
+      }
 
-        // A cap that falls is tracking the resource it claims to bound. Real caps hold steady, or
-        // rise with an upgrade. This is what separates a bound from a mirror — every other
-        // assertion here is satisfied by a cap defined as "whatever the player currently has".
-        if (prev) {
-          assert.ok(v.resources.rosterCap >= prev.resources.rosterCap,
-            `rosterCap fell from ${prev.resources.rosterCap} to ${v.resources.rosterCap} (seed ${seed})`);
-          assert.ok(v.resources.ramMax >= prev.resources.ramMax,
-            `ramMax fell from ${prev.resources.ramMax} to ${v.resources.ramMax} (seed ${seed})`);
-          assert.ok(v.pressure.max >= prev.pressure.max,
-            `pressure ceiling fell from ${prev.pressure.max} to ${v.pressure.max} (seed ${seed})`);
-        }
-        prev = v;
+      // A cap that moves is tracking its resource. A cap that only ever falls is a mirror; one
+      // that only ever rises is a ratchet, and a ratchet is never exceeded either. Neither is a
+      // bound. Real caps hold for the length of a run.
+      const first = run.views[0];
+      for (const v of run.views) {
+        assert.equal(v.resources.rosterCap, first.resources.rosterCap,
+          `rosterCap changed from ${first.resources.rosterCap} to ${v.resources.rosterCap} mid-run (seed ${seed})`);
+        assert.equal(v.resources.ramMax, first.resources.ramMax,
+          `ramMax changed from ${first.resources.ramMax} to ${v.resources.ramMax} mid-run (seed ${seed})`);
+        assert.equal(v.pressure.max, first.pressure.max,
+          `pressure ceiling changed from ${first.pressure.max} to ${v.pressure.max} mid-run (seed ${seed})`);
       }
     }
 

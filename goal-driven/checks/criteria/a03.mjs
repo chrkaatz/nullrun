@@ -70,24 +70,40 @@ export default {
           assert.deepEqual(removed, [], `a take removed ${removed.join(',')} from the roster (${where})`);
         }
 
-        // Credits and ram are resources too, and a floor check says only that they never go
-        // negative — nothing about silent creation, which is what this criterion names.
-        const sameScreen = oracle.view(before).screen === oracle.view(after).screen;
-        if (sameScreen) {
-          assert.ok(a.credits <= b.credits,
-            `credits rose from ${b.credits} to ${a.credits} with no screen change (${where})`);
-          if (action.type !== 'end') {
-            assert.ok(a.ram <= b.ram, `ram rose from ${b.ram} to ${a.ram} on a ${action.type} (${where})`);
-          }
+        // Roster growth is bounded everywhere, not only on the actions that name it. `onward`
+        // is where a payout legitimately grants a token, which is exactly why an unconstrained
+        // `onward` is the natural route for silent creation.
+        assert.ok(added.length <= 1,
+          `${action.type} added ${added.length} roster entries at once (${where})`);
+        for (const id of added) {
+          assert.ok(!b.burned.includes(id),
+            `${action.type} returned burned id ${id} to the roster (${where})`);
         }
 
-        // A declared price must be the price actually charged.
+        // Ram never rises silently within a screen — the existing rule, unchanged.
+        const sameScreen = oracle.view(before).screen === oracle.view(after).screen;
+        if (sameScreen && action.type !== 'end') {
+          assert.ok(a.ram <= b.ram, `ram rose from ${b.ram} to ${a.ram} on a ${action.type} (${where})`);
+        }
+
+        // Credits rise only where the contract says value is awarded — a payout — or out of the
+        // loadout, where a run is equipped. Gating this on an unchanged screen let `bail` and
+        // every other transition through.
+        if (a.credits > b.credits) {
+          const aScreen = oracle.view(after).screen, bScreen = oracle.view(before).screen;
+          assert.ok(aScreen === 'payout' || bScreen === 'loadout',
+            `credits rose from ${b.credits} to ${a.credits} outside a payout (${where})`);
+        }
+
+        // A take must be for an offer that was actually on the table, and must charge its
+        // declared price. Without the first assertion the second is optional for any oracle
+        // willing to omit the offer it charges for.
         if (action.type === 'take') {
           const offer = oracle.allOffers(before).find(o => o.id === action.id);
-          if (offer) {
-            assert.equal(b.credits - a.credits, offer.cost,
-              `a take charged ${b.credits - a.credits} for an offer priced ${offer.cost} (${where})`);
-          }
+          assert.ok(offer,
+            `a take was legal for ${action.id}, which allOffers does not list (${where})`);
+          assert.equal(b.credits - a.credits, offer.cost,
+            `a take charged ${b.credits - a.credits} for an offer priced ${offer.cost} (${where})`);
         }
 
         if (action.type === 'end') turns += 1;
