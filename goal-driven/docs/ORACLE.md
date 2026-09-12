@@ -79,6 +79,12 @@ the pressure mechanic fills.** That turn is still a turn you act in, and a clear
 node. Undercounting it by one is the precise defect that kept `traditional`'s A15 green while it
 was false; the contract states it so no implementation has to rediscover it.
 
+`free` is the renewable action, and it is available **once per turn**. A15 measures its total
+contribution as `free.value × turnsAllowed`, which is only that total if the action cannot be
+repeated within a turn. An unlimited free action makes the pressure mechanic decorative — a
+rational player never ends a turn, so nothing ever accrues — and it would satisfy A15's arithmetic
+while breaking the thing A15 exists to protect.
+
 ## Surface 2 — the artifact
 
 `goal-driven/nullrun.html`, a file opened directly. It is loaded in Chromium at **360×780** with

@@ -7,11 +7,11 @@
 //
 // Declared to FAIL A13, A14, A15 and A17. A toy small enough to be a control is not a game.
 
-const LAYERS = 3, RAM_MAX = 5, ROSTER_CAP = 3, CLOCK_MAX = 8, FREE_VALUE = 2;
+const LAYERS = 3, RAM_MAX = 6, ROSTER_CAP = 3, CLOCK_MAX = 8, FREE_VALUE = 2;
 
 const TOKENS = {
   t1: { value: 3, cost: 1 }, t2: { value: 4, cost: 2 }, t3: { value: 5, cost: 3 },
-  t4: { value: 6, cost: 4 }, t5: { value: 2, cost: 1 }, t6: { value: 7, cost: 5 }
+  t4: { value: 6, cost: 4 }, t5: { value: 10, cost: 1 }, t6: { value: 7, cost: 5 }
 };
 const ALL = Object.keys(TOKENS);
 
@@ -34,7 +34,7 @@ function burst(s, armour) {
 
 function makeOffers(s) {
   let rs = s.rs;
-  const base = 12 + s.layer * 2;
+  const base = 10 + s.layer * 1;
   const offers = [];
   for (let i = 0; i < 3; i++) {
     const [r, ns] = rand(rs); rs = ns;
@@ -50,7 +50,7 @@ export function newRun(seed) {
   const s = {
     rs: (seed >>> 0) || 1, screen: 'loadout', layer: 0, turn: 0, clock: 0,
     ram: RAM_MAX, roster: ['t1', 't2', 't3'], burned: [], credits: 0,
-    threat: null, offers: [], pending: null, outcome: null
+    threat: null, offers: [], pending: null, outcome: null, freeSpent: false
   };
   return s;
 }
@@ -84,7 +84,7 @@ export function legalActions(state) {
   }
   // encounter
   const acts = s.roster.filter(id => TOKENS[id].cost <= s.ram).map(id => ({ type: 'call', id }));
-  acts.push({ type: 'free' });
+  if (!s.freeSpent) acts.push({ type: 'free' });
   acts.push({ type: 'end' });
   acts.push({ type: 'bail' });
   return acts;
@@ -107,7 +107,7 @@ export function apply(state, action) {
     const o = s.offers.find(x => x.id === action.id);
     s.credits -= o.cost;
     s.threat = { id: o.id, integrity: o.reach, armour: o.armour };
-    s.screen = 'encounter'; s.turn = 0; s.clock = 0; s.ram = RAM_MAX;
+    s.screen = 'encounter'; s.turn = 0; s.clock = 0; s.ram = RAM_MAX; s.freeSpent = false;
     return s;
   }
 
@@ -133,10 +133,12 @@ export function apply(state, action) {
     s.threat.integrity -= Math.max(1, tok.value - s.threat.armour);
   } else if (action.type === 'free') {
     s.threat.integrity -= FREE_VALUE;
+    s.freeSpent = true;
   } else if (action.type === 'end') {
     s.clock += incomingFor(s.layer);
     s.turn += 1;
     s.ram = RAM_MAX;
+    s.freeSpent = false;
   }
 
   if (s.threat.integrity <= 0) {
