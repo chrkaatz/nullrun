@@ -318,6 +318,12 @@ the pressure mechanic fills.** That turn is still a turn you act in, and a clear
 node. Undercounting it by one is the precise defect that kept `traditional`'s A15 green while it
 was false; the contract states it so no implementation has to rediscover it.
 
+`free` is the renewable action, and it is available **once per turn**. A15 measures its total
+contribution as `free.value × turnsAllowed`, which is only that total if the action cannot be
+repeated within a turn. An unlimited free action makes the pressure mechanic decorative — a
+rational player never ends a turn, so nothing ever accrues — and it would satisfy A15's arithmetic
+while breaking the thing A15 exists to protect.
+
 ## Surface 2 — the artifact
 
 `goal-driven/nullrun.html`, a file opened directly. It is loaded in Chromium at **360×780** with
@@ -878,11 +884,13 @@ export function policy(oracle, state) {
 //
 // Declared to FAIL A13, A14, A15 and A17. A toy small enough to be a control is not a game.
 
-const LAYERS = 3, RAM_MAX = 5, ROSTER_CAP = 5, CLOCK_MAX = 8, FREE_VALUE = 2;
+const LAYERS = 3, RAM_MAX = 6, ROSTER_CAP = 3, CLOCK_MAX = 8, FREE_VALUE = 2;
 
 const TOKENS = {
   t1: { value: 3, cost: 1 }, t2: { value: 4, cost: 2 }, t3: { value: 5, cost: 3 },
-  t4: { value: 6, cost: 4 }, t5: { value: 2, cost: 1 }, t6: { value: 7, cost: 5 }
+  t4: { value: 6, cost: 4 }, t5: { value: 7, cost: 5 }, t6: { value: 8, cost: 1 },
+  t7: { value: 9, cost: 2 }, t8: { value: 10, cost: 3 }, t9: { value: 11, cost: 4 },
+  t10: { value: 12, cost: 5 }, t11: { value: 13, cost: 1 }, t12: { value: 14, cost: 2 }
 };
 const ALL = Object.keys(TOKENS);
 
@@ -893,27 +901,53 @@ const clone = x => JSON.parse(JSON.stringify(x));
 function incomingFor(layer) { return 2 + layer; }
 
 function turnsAllowed(s) {
-  // Counts the turn on which the clock fills. That turn is still a turn you act in.
+  // Counts the turn on which the clock fills. That turn is still a turn you act in. Valid only
+  // while `s.clock` is the live clock of the encounter in progress — i.e. inside `view()`.
   const step = incomingFor(s.layer);
   return Math.floor((CLOCK_MAX - s.clock - 1) / step) + 1;
 }
 
+function turnsOnEntry(layer) {
+  // What `turnsAllowed` will read once an offer is taken: entering an encounter always resets
+  // the clock to 0 (see `apply`'s 'offers' branch), so the turn count an offer is priced against
+  // must be computed from a clock of 0, never from whatever clock survived the last encounter.
+  // `burst` and `makeOffers` price offers before that reset has happened, so they use this
+  // instead of `turnsAllowed(s)` — using the stale `s.clock` there priced offers against a turn
+  // count the player would never actually be given.
+  const step = incomingFor(layer);
+  return Math.floor((CLOCK_MAX - 1) / step) + 1;
+}
+
 function burst(s, armour) {
   const fromRoster = s.roster.reduce((t, id) => t + Math.max(1, TOKENS[id].value - armour), 0);
-  return fromRoster + FREE_VALUE * turnsAllowed(s);
+  return fromRoster + FREE_VALUE * turnsOnEntry(s.layer);
 }
 
 function makeOffers(s) {
+  // Every offer is derived from what the player currently holds (via `burst`), not from the
+  // layer number, so a choice point can never end up with nothing achievable in it (A2). The
+  // three offers are shaped deliberately: the first is always achievable and unarmoured (the
+  // fallback, and the softest — its slack over the free action alone is what A15 measures); the
+  // second is achievable and armoured (what a competent player actually takes, so armour gets
+  // exercised — A12); the third is never achievable, so a real choice, and the unachievable
+  // flag genuinely varies, exists (A13, A16).
   let rs = s.rs;
-  const base = 12 + s.layer * 2;
-  const offers = [];
-  for (let i = 0; i < 3; i++) {
-    const [r, ns] = rand(rs); rs = ns;
-    offers.push({
-      id: `n${s.layer}_${i}`, label: `node ${s.layer}-${i}`,
-      cost: i, reach: base + i * 3 + (r < 0.5 ? 0 : 1), armour: i
-    });
-  }
+  const freeTotal = FREE_VALUE * turnsOnEntry(s.layer);
+  const [r0, rs1] = rand(rs);
+  const [r1, rs2] = rand(rs1);
+  const [r2, rs3] = rand(rs2);
+  rs = rs3;
+  const slack0 = 2 + Math.floor(r0 * 2);   // 2..3, added: stays achievable, stays above freeTotal
+  const slack1 = 1 + Math.floor(r1 * 2);   // 1..2, subtracted: stays achievable
+  const slack2 = 3 + Math.floor(r2 * 2);   // 3..4, added: stays unachievable
+  const offers = [
+    { id: `n${s.layer}_0`, label: `node ${s.layer}-0`, cost: 0,
+      reach: freeTotal + slack0, armour: 0 },
+    { id: `n${s.layer}_1`, label: `node ${s.layer}-1`, cost: 1,
+      reach: Math.max(1, burst(s, 1) - slack1), armour: 1 },
+    { id: `n${s.layer}_2`, label: `node ${s.layer}-2`, cost: 2,
+      reach: burst(s, 2) + slack2, armour: 2 }
+  ];
   return { offers, rs };
 }
 
@@ -921,7 +955,7 @@ export function newRun(seed) {
   const s = {
     rs: (seed >>> 0) || 1, screen: 'loadout', layer: 0, turn: 0, clock: 0,
     ram: RAM_MAX, roster: ['t1', 't2', 't3'], burned: [], credits: 0,
-    threat: null, offers: [], pending: null, outcome: null
+    threat: null, offers: [], pending: null, outcome: null, freeSpent: false
   };
   return s;
 }
@@ -955,7 +989,7 @@ export function legalActions(state) {
   }
   // encounter
   const acts = s.roster.filter(id => TOKENS[id].cost <= s.ram).map(id => ({ type: 'call', id }));
-  acts.push({ type: 'free' });
+  if (!s.freeSpent) acts.push({ type: 'free' });
   acts.push({ type: 'end' });
   acts.push({ type: 'bail' });
   return acts;
@@ -978,7 +1012,7 @@ export function apply(state, action) {
     const o = s.offers.find(x => x.id === action.id);
     s.credits -= o.cost;
     s.threat = { id: o.id, integrity: o.reach, armour: o.armour };
-    s.screen = 'encounter'; s.turn = 0; s.clock = 0; s.ram = RAM_MAX;
+    s.screen = 'encounter'; s.turn = 0; s.clock = 0; s.ram = RAM_MAX; s.freeSpent = false;
     return s;
   }
 
@@ -1004,10 +1038,12 @@ export function apply(state, action) {
     s.threat.integrity -= Math.max(1, tok.value - s.threat.armour);
   } else if (action.type === 'free') {
     s.threat.integrity -= FREE_VALUE;
+    s.freeSpent = true;
   } else if (action.type === 'end') {
     s.clock += incomingFor(s.layer);
     s.turn += 1;
     s.ram = RAM_MAX;
+    s.freeSpent = false;
   }
 
   if (s.threat.integrity <= 0) {
