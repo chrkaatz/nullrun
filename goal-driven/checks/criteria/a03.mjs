@@ -123,6 +123,17 @@ export default {
             assert.equal(b.credits - probedView.resources.credits, offer.cost,
               `taking ${cand.id} charged ${b.credits - probedView.resources.credits} against a declared price of ${offer.cost} (${where})`);
           }
+          if (cand.type === 'bail') {
+            const pr = probedView.resources;
+            const pAdded = pr.roster.filter(id => !b.roster.includes(id));
+            const pRemoved = b.roster.filter(id => !pr.roster.includes(id));
+            assert.deepEqual(pAdded, [],
+              `bailing added ${pAdded.join(',')} to the roster (${where})`);
+            assert.deepEqual(pRemoved, [],
+              `bailing removed ${pRemoved.join(',')} from the roster (${where})`);
+            assert.ok(pr.ram <= b.ram,
+              `bailing raised ram from ${b.ram} to ${pr.ram} (${where})`);
+          }
         }
 
         if (action.type === 'end') turns += 1;
