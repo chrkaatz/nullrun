@@ -21,29 +21,38 @@ const lcg = s => (Math.imul(s, 1664525) + 1013904223) >>> 0;
 const rand = s => { const n = lcg(s); return [n / 4294967296, n]; };
 const clone = x => JSON.parse(JSON.stringify(x));
 
-function incomingFor(layer) { return 2 + layer; }
+function incomingFor(state) {
+  // Disabling 'clock' — the only mechanic id this fixture declares (see `view().pressure.id`)
+  // — must make the pressure meter inert per the Options contract in ORACLE.md.
+  if (state.disabled.includes('clock')) return 0;
+  return 2 + state.layer;
+}
 
 function turnsAllowed(s) {
   // Counts the turn on which the clock fills. That turn is still a turn you act in. Valid only
   // while `s.clock` is the live clock of the encounter in progress — i.e. inside `view()`.
-  const step = incomingFor(s.layer);
+  const step = incomingFor(s);
+  // A disabled clock never advances, so the turn count is unbounded; return the ceiling itself
+  // as a sane finite stand-in rather than dividing by zero.
+  if (step === 0) return CLOCK_MAX;
   return Math.floor((CLOCK_MAX - s.clock - 1) / step) + 1;
 }
 
-function turnsOnEntry(layer) {
+function turnsOnEntry(state) {
   // What `turnsAllowed` will read once an offer is taken: entering an encounter always resets
   // the clock to 0 (see `apply`'s 'offers' branch), so the turn count an offer is priced against
   // must be computed from a clock of 0, never from whatever clock survived the last encounter.
   // `burst` and `makeOffers` price offers before that reset has happened, so they use this
   // instead of `turnsAllowed(s)` — using the stale `s.clock` there priced offers against a turn
   // count the player would never actually be given.
-  const step = incomingFor(layer);
+  const step = incomingFor(state);
+  if (step === 0) return CLOCK_MAX;
   return Math.floor((CLOCK_MAX - 1) / step) + 1;
 }
 
 function burst(s, armour) {
   const fromRoster = s.roster.reduce((t, id) => t + Math.max(1, TOKENS[id].value - armour), 0);
-  return fromRoster + FREE_VALUE * turnsOnEntry(s.layer);
+  return fromRoster + FREE_VALUE * turnsOnEntry(s);
 }
 
 function makeOffers(s) {
@@ -55,7 +64,7 @@ function makeOffers(s) {
   // exercised — A12); the third is never achievable, so a real choice, and the unachievable
   // flag genuinely varies, exists (A13, A16).
   let rs = s.rs;
-  const freeTotal = FREE_VALUE * turnsOnEntry(s.layer);
+  const freeTotal = FREE_VALUE * turnsOnEntry(s);
   const [r0, rs1] = rand(rs);
   const [r1, rs2] = rand(rs1);
   const [r2, rs3] = rand(rs2);
@@ -74,9 +83,10 @@ function makeOffers(s) {
   return { offers, rs };
 }
 
-export function newRun(seed) {
+export function newRun(seed, options = {}) {
   const s = {
     rs: (seed >>> 0) || 1, screen: 'loadout', layer: 0, turn: 0, clock: 0,
+    disabled: Array.isArray(options.disable) ? options.disable.slice() : [],
     ram: RAM_MAX, roster: ['t1', 't2', 't3'], burned: [], credits: 0,
     threat: null, offers: [], pending: null, outcome: null, freeSpent: false
   };
@@ -163,7 +173,7 @@ export function apply(state, action) {
     s.threat.integrity -= FREE_VALUE;
     s.freeSpent = true;
   } else if (action.type === 'end') {
-    s.clock += incomingFor(s.layer);
+    s.clock += incomingFor(s);
     s.turn += 1;
     s.ram = RAM_MAX;
     s.freeSpent = false;
@@ -193,7 +203,7 @@ export function view(state) {
     pressure: { id: 'clock', value: s.clock, max: CLOCK_MAX },
     threat: s.threat ? { ...s.threat } : null,
     incoming: s.screen === 'encounter'
-      ? { value: incomingFor(s.layer), label: `clock +${incomingFor(s.layer)}` } : null,
+      ? { value: incomingFor(s), label: `clock +${incomingFor(s)}` } : null,
     free: s.screen === 'encounter' ? { id: 'free', value: FREE_VALUE } : null
   };
 }
