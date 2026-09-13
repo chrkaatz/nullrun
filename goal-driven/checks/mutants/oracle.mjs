@@ -29,9 +29,12 @@ export const ORACLE_MUTANTS = [
   {
     id: 'm-static-seed',
     label: 'newRun ignores the seed',
-    // Not A13: `faithful.mjs` fails A13's population-statistic assertions unconditionally
-    // (win rate is 100/0 with or without this mutant) — undemonstrable at scaffolding time.
-    expect: ['A1'],
+    // A13 is here as intent, not as a demonstrated kill: `faithful.mjs` fails A13's
+    // population-statistic assertions unconditionally (win rate is 100/0 whether or not this
+    // mutant is applied), so this specific cell can never isolate A13's contribution against
+    // this control — it is trivially "killed" by baseline noise either way, and that is exactly
+    // why no surprise appears here even though the underlying kill is undemonstrated.
+    expect: ['A1', 'A13'],
     wrap: o => wrapAll(o, { newRun: (_seed, opts) => o.newRun(1, opts) })
   },
   {
@@ -61,7 +64,7 @@ export const ORACLE_MUTANTS = [
   {
     id: 'm-dead-end',
     label: 'legalActions goes empty inside an encounter',
-    expect: ['A6', 'A3', 'A16'],
+    expect: ['A6'],
     wrap: o => wrapAll(o, {
       legalActions: state => {
         const v = o.view(state);
@@ -98,8 +101,9 @@ export const ORACLE_MUTANTS = [
   {
     id: 'm-always-achievable',
     label: 'every option is advertised as achievable',
-    // Not A13, for the same reason as m-static-seed above.
-    expect: ['A16'],
+    // A13 is here as intent, undemonstrable against this control for the same reason as
+    // m-static-seed above.
+    expect: ['A16', 'A13'],
     wrap: o => wrapAll(o, {
       allOffers: state => o.allOffers(state).map(x => ({ ...x, achievable: true }))
     })
@@ -147,11 +151,15 @@ export const ORACLE_MUTANTS = [
   {
     id: 'm-pressure-inert',
     label: 'the pressure mechanic is disabled through the contract',
-    // Not A14: A14's own kill is undemonstrable at scaffolding time — it requires disabling the
-    // mechanic to *raise* the win rate, and `faithful.mjs` already wins 200/200 with it active,
-    // so no mutant can push that rate any higher. A14's lethality can only be shown once a real
-    // oracle exists. A17 is symmetric (it too fails this control unconditionally on win rate).
-    expect: ['A4', 'A11', 'A16'],
+    // A14 and A17 are the mutant's original design intent, and are undemonstrable as isolated
+    // kills at scaffolding time: A14 requires disabling the mechanic to *raise* the win rate,
+    // and `faithful.mjs` already wins 200/200 with it active, so no mutant can push that rate
+    // any higher; A17 is symmetric (it too fails this control unconditionally on win rate). Both
+    // stay in `expect` as intent — their lethality can only be demonstrated once a real oracle
+    // exists. A4, A11 and A16 are confirmed genuine kills, found once `faithful.mjs` was made to
+    // honour `disable` (see ORACLE.md's Options): freezing the clock starves A4's landed-harm
+    // guard and trips A11's ceiling-bounds-nothing assertion.
+    expect: ['A4', 'A11', 'A14', 'A16', 'A17'],
     wrap: o => wrapAll(o, {
       newRun: (seed, opts = {}) => {
         const probe = o.view(o.newRun(seed, opts));
