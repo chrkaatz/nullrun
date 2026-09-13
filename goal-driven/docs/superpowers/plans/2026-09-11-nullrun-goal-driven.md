@@ -668,15 +668,18 @@ export async function runOracleCriterion(criterion, oracle) {
   }
 }
 
-export async function runArtifactCriterion(criterion, artifactPath) {
+export async function runArtifactCriterion(criterion, artifactPath, oracle) {
   const { chromium } = await import('playwright');
   const notes = [];
   const browser = await chromium.launch();
-  const context = await browser.newContext({ viewport: { width: 360, height: 780 } });
+  const context = await browser.newContext({
+    viewport: { width: 360, height: 780 },
+    serviceWorkers: 'block'
+  });
   const page = await context.newPage();
   const t0 = Date.now();
   try {
-    const ctx = { page, context, artifactPath, assert, note: s => notes.push(String(s)) };
+    const ctx = { page, context, artifactPath, oracle, assert, note: s => notes.push(String(s)) };
     await criterion.run(ctx);
     return { status: 'pass', message: null, notes, ms: Date.now() - t0 };
   } catch (e) {
@@ -730,10 +733,12 @@ async function main() {
       r = haveOracle
         ? await runOracleCriterion(c, await import(pathToFileURL(oraclePath).href))
         : { status: 'fail', message: `no oracle at ${oraclePath}`, notes: [], ms: 0 };
+    } else if (!haveArtifact) {
+      r = { status: 'fail', message: `no artifact at ${artifactPath}`, notes: [], ms: 0 };
+    } else if (!haveOracle) {
+      r = { status: 'fail', message: `no oracle at ${oraclePath}`, notes: [], ms: 0 };
     } else {
-      r = haveArtifact
-        ? await runArtifactCriterion(c, artifactPath)
-        : { status: 'fail', message: `no artifact at ${artifactPath}`, notes: [], ms: 0 };
+      r = await runArtifactCriterion(c, artifactPath, await import(pathToFileURL(oraclePath).href));
     }
     results.push({ id: c.id, title: c.title, surface: c.surface, ...r });
     console.log(`${r.status === 'pass' ? 'ok  ' : 'FAIL'} ${c.id}  ${c.title}` +
@@ -2000,18 +2005,27 @@ shipping the known defect. All four are measured in Chromium at 360×780.
 Append to the `## Surface 2 — the artifact` section:
 
 ````markdown
-### The screen hook
+### The render hook
 
-Four criteria have to be measured on every screen, and clicking a path to each one would make the
-bar depend on the build's selectors. The artifact therefore exposes two globals:
+Four criteria are measured on what is actually on screen. Letting the build choose what to show
+them would let it render a flattering facsimile, so the build does not choose: the checks feed it
+states the oracle itself produced.
 
 ```js
-window.__screens          // string[] — every screen name the UI can show
-window.__goto(name)       // put the UI into a representative, populated state for that screen
+window.__render(view)   // render the UI for a View exactly as the oracle produced it
+window.__screens        // string[] — every screen name the UI can show
 ```
 
-`__goto` must produce a state a player could actually reach — populated lists, a live encounter,
-real values. A screen rendered empty passes A9 and A10 for the wrong reason.
+`__render` takes a `View` — the same shape `view(state)` returns on Surface 1 — and renders the
+interface for it. It must complete its render **synchronously** before returning: it is a test
+hook, it may skip animation, and an asynchronous render makes every measurement a race.
+
+`__render` must not invent content. Whatever the `View` says the player holds is what the screen
+shows.
+
+**Every interactive control must be reachable by a standard selector** — a `<button>`, an
+`<a href>`, or an element carrying `role` or `tabindex`. A control the bar cannot see is a control
+the bar cannot check, and a `<div>` with a click handler is invisible to it.
 
 This is a test hook in shipped code, and that is a deliberate trade: the alternative is a bar that
 breaks whenever a class name changes. It issues no network request and costs nothing at runtime.
@@ -2021,33 +2035,45 @@ breaks whenever a class name changes. It issues no network request and costs not
 
 ```js
 import { pathToFileURL } from 'node:url';
+import { playRun, seeds } from './harness.mjs';
+import { policy } from '../policy.mjs';
 
 export const INTERACTIVE =
-  'button, a[href], input, select, textarea, [role="button"], [tabindex]:not([tabindex="-1"])';
+  'button, a[href], input, select, textarea, summary, [role], [tabindex]:not([tabindex="-1"])';
+
+// Collects one representative View per screen the oracle actually reaches, preferring the most
+// populated instance of each — an empty variant of a screen proves the least about layout.
+export function representativeViews(oracle, seedCount = 8) {
+  const best = new Map();
+  const weight = v => v.resources.roster.length + v.resources.burned.length +
+                      (v.threat ? 1 : 0) + (v.incoming ? 1 : 0);
+  for (const seed of seeds(seedCount)) {
+    const run = playRun(oracle, seed, policy, { maxSteps: 600 });
+    for (const v of run.views) {
+      const prev = best.get(v.screen);
+      if (!prev || weight(v) > weight(prev)) best.set(v.screen, v);
+    }
+  }
+  return [...best.entries()].map(([screen, view]) => ({ screen, view }));
+}
 
 export async function load(page, artifactPath) {
   await page.goto(pathToFileURL(artifactPath).href);
   await page.waitForLoadState('domcontentloaded');
-  const screens = await page.evaluate(() => window.__screens ?? null);
-  if (!screens || !Array.isArray(screens) || screens.length === 0) {
-    throw new Error('the artifact exposes no window.__screens — see ORACLE.md, Surface 2');
-  }
-  return screens;
+  const ok = await page.evaluate(() => typeof window.__render === 'function');
+  if (!ok) throw new Error('the artifact exposes no window.__render — see ORACLE.md, Surface 2');
 }
 
-// Walks every declared screen, calling fn(name) with the page in that state.
-export async function visitScreens(page, artifactPath, fn) {
-  const screens = await load(page, artifactPath);
-  for (const name of screens) {
-    const ok = await page.evaluate(n => {
-      if (typeof window.__goto !== 'function') return false;
-      window.__goto(n); return true;
-    }, name);
-    if (!ok) throw new Error('the artifact exposes no window.__goto — see ORACLE.md, Surface 2');
-    await page.waitForTimeout(50);
-    await fn(name);
+// Renders each representative View in turn and calls fn(screenName) with the page showing it.
+export async function visitStates(page, artifactPath, oracle, fn) {
+  await load(page, artifactPath);
+  const states = representativeViews(oracle);
+  if (states.length === 0) throw new Error('the oracle produced no states to render');
+  for (const { screen, view } of states) {
+    await page.evaluate(v => window.__render(v), view);
+    await fn(screen);
   }
-  return screens;
+  return states.map(s => s.screen);
 }
 ```
 
@@ -2057,7 +2083,7 @@ Written before the others because it is the one that must arm its listener befor
 
 ```js
 import { pathToFileURL } from 'node:url';
-import { visitScreens } from '../lib/screens.mjs';
+import { visitStates } from '../lib/screens.mjs';
 
 export default {
   id: 'A8',
@@ -2065,14 +2091,14 @@ export default {
   surface: 'artifact',
 
   async run(ctx) {
-    const { page, artifactPath, assert, note } = ctx;
+    const { page, artifactPath, oracle, assert, note } = ctx;
     const seen = [];
     const docUrl = pathToFileURL(artifactPath).href;
 
     page.on('request', r => { if (r.url() !== docUrl) seen.push(`${r.method()} ${r.url()}`); });
     page.on('requestfailed', r => { if (r.url() !== docUrl) seen.push(`FAILED ${r.url()}`); });
 
-    const screens = await visitScreens(page, artifactPath, async () => {
+    const screens = await visitStates(page, artifactPath, oracle, async () => {
       await page.waitForTimeout(150);
     });
 
@@ -2080,6 +2106,12 @@ export default {
     note(`visited ${screens.length} screens; ${seen.length} requests observed, ${offending.length} not data: URIs`);
     assert.deepEqual(offending, [],
       `the artifact issued network requests: ${offending.slice(0, 5).join(' · ')}`);
+
+    const preconnects = await page.evaluate(() =>
+      [...document.querySelectorAll('link[rel~="preconnect"], link[rel~="dns-prefetch"], link[rel~="prefetch"], link[rel~="preload"]')]
+        .map(l => `${l.rel} ${l.href}`));
+    assert.deepEqual(preconnects, [],
+      `the artifact declares connection-opening links: ${preconnects.join(' · ')}`);
   }
 };
 ```
@@ -2092,7 +2124,7 @@ export default {
 - [ ] **Step 4: Write `a09.mjs` — no horizontal scroll at 360px**
 
 ```js
-import { visitScreens } from '../lib/screens.mjs';
+import { visitStates } from '../lib/screens.mjs';
 
 export default {
   id: 'A9',
@@ -2100,11 +2132,11 @@ export default {
   surface: 'artifact',
 
   async run(ctx) {
-    const { page, artifactPath, assert, note } = ctx;
+    const { page, artifactPath, oracle, assert, note } = ctx;
     const report = [];
 
     await page.setViewportSize({ width: 360, height: 780 });
-    const screens = await visitScreens(page, artifactPath, async () => {
+    const screens = await visitStates(page, artifactPath, oracle, async () => {
       const m = await page.evaluate(() => {
         const d = document.documentElement;
         let widest = null, widestRight = d.clientWidth;
@@ -2126,8 +2158,9 @@ export default {
         `screen "${screens[i]}" scrolls horizontally: ${m.scrollWidth}px content in ${m.clientWidth}px` +
         (m.widest ? `, widest element ${m.widest} reaching ${Math.round(m.widestRight)}px` : ''));
       // A screen with nothing laid out never scrolls, so it satisfies this criterion without
-      // demonstrating anything. The contract requires __goto to produce a state a player could
-      // actually reach; this is what enforces it.
+      // demonstrating anything. The checks now drive __render with states the oracle actually
+      // produced (ORACLE.md, the render hook), but a build could still render one thin sparsely;
+      // this is what enforces it.
       assert.ok(m.laidOut >= 5,
         `screen "${screens[i]}" rendered only ${m.laidOut} laid-out elements — too empty to prove anything about layout`);
     }
@@ -2139,7 +2172,7 @@ export default {
 - [ ] **Step 5: Write `a10.mjs` — 44px targets**
 
 ```js
-import { visitScreens, INTERACTIVE } from '../lib/screens.mjs';
+import { visitStates, INTERACTIVE } from '../lib/screens.mjs';
 
 export default {
   id: 'A10',
@@ -2147,12 +2180,12 @@ export default {
   surface: 'artifact',
 
   async run(ctx) {
-    const { page, artifactPath, assert, note } = ctx;
+    const { page, artifactPath, oracle, assert, note } = ctx;
     const offenders = [];
     let measured = 0;
 
     await page.setViewportSize({ width: 360, height: 780 });
-    await visitScreens(page, artifactPath, async (name) => {
+    await visitStates(page, artifactPath, oracle, async (name) => {
       const boxes = await page.evaluate(sel => {
         const out = [];
         for (const el of document.querySelectorAll(sel)) {
@@ -2189,7 +2222,7 @@ export default {
 
 ```js
 import { createHash } from 'node:crypto';
-import { visitScreens, INTERACTIVE } from '../lib/screens.mjs';
+import { visitStates, INTERACTIVE } from '../lib/screens.mjs';
 
 const hash = buf => createHash('sha1').update(buf).digest('hex');
 
@@ -2201,36 +2234,32 @@ export default {
   surface: 'artifact',
 
   async run(ctx) {
-    const { page, artifactPath, assert, note } = ctx;
+    const { page, artifactPath, oracle, assert, note } = ctx;
     const collisions = [];
     let compared = 0;
 
     await page.setViewportSize({ width: 360, height: 780 });
-    await visitScreens(page, artifactPath, async (name) => {
-      const boxes = await page.evaluate(sel => {
-        const out = [];
-        for (const el of document.querySelectorAll(sel)) {
-          const r = el.getBoundingClientRect();
-          const s = getComputedStyle(el);
-          if (s.display === 'none' || s.visibility === 'hidden') continue;
-          if (r.width < 4 || r.height < 4) continue;
-          // screenshot({clip}) cannot reach past the fold, so compare only what is on screen.
-          if (r.y < 0 || r.y + r.height > window.innerHeight) continue;
-          out.push({
-            label: (el.textContent || '').trim().slice(0, 30),
-            x: Math.round(r.x), y: Math.round(r.y),
-            w: Math.round(r.width), h: Math.round(r.height)
-          });
-        }
-        return out;
-      }, INTERACTIVE);
-      if (boxes.length < 2) return;
+    await visitStates(page, artifactPath, oracle, async (name) => {
+      const handles = await page.$$(INTERACTIVE);
+      const items = [];
+      for (const el of handles) {
+        // elementHandle.screenshot() auto-scrolls the element into view first, so unlike
+        // page.screenshot({clip}) it can reach controls past the fold on a scrolling screen.
+        const box = await el.boundingBox();
+        if (!box || box.width < 4 || box.height < 4) continue;
+        const visible = await el.evaluate(node => {
+          const s = getComputedStyle(node);
+          return s.display !== 'none' && s.visibility !== 'hidden';
+        });
+        if (!visible) continue;
+        const label = await el.evaluate(node => (node.textContent || '').trim().slice(0, 30));
+        items.push({ el, label, w: Math.round(box.width), h: Math.round(box.height) });
+      }
+      if (items.length < 2) return;
 
       const shot = async () => {
         const out = [];
-        for (const b of boxes) {
-          out.push(hash(await page.screenshot({ clip: { x: b.x, y: b.y, width: b.w, height: b.h } })));
-        }
+        for (const it of items) out.push(hash(await it.el.screenshot()));
         return out;
       };
 
@@ -2243,18 +2272,16 @@ export default {
       // The removal above can only fail loudly, never silently: if the filter stayed on, every
       // later screen would be shot desaturated in both passes and A7 would pass for the wrong
       // reason — colour and greyscale hashes matching everywhere, not because nothing differs.
-      const restored = hash(await page.screenshot({
-        clip: { x: boxes[0].x, y: boxes[0].y, width: boxes[0].w, height: boxes[0].h }
-      }));
+      const restored = hash(await items[0].el.screenshot());
       assert.equal(restored, colour[0],
         `the greyscale filter did not lift after screen "${name}" — every later screen would be compared against itself`);
 
-      for (let i = 0; i < boxes.length; i++) {
-        for (let j = i + 1; j < boxes.length; j++) {
-          if (boxes[i].w !== boxes[j].w || boxes[i].h !== boxes[j].h) continue;
+      for (let i = 0; i < items.length; i++) {
+        for (let j = i + 1; j < items.length; j++) {
+          if (items[i].w !== items[j].w || items[i].h !== items[j].h) continue;
           compared += 1;
           if (colour[i] !== colour[j] && grey[i] === grey[j]) {
-            collisions.push(`${name}: "${boxes[i].label}" and "${boxes[j].label}" differ only in colour`);
+            collisions.push(`${name}: "${items[i].label}" and "${items[j].label}" differ only in colour`);
           }
         }
       }
@@ -2679,7 +2706,7 @@ async function main() {
         ...c,
         run: async ctx => { await m.inject(ctx.page); return c.run(ctx); }
       };
-      const r = await runArtifactCriterion(wrapped, artifactPath);
+      const r = await runArtifactCriterion(wrapped, artifactPath, base);
       rows.push({ mutant: m.id, criterion: c.id, killed: r.status === 'fail', expected: m.expect.includes(c.id) });
     }
     console.log(`· ${m.id}`);
