@@ -9,13 +9,29 @@ export default {
 
   async run(ctx) {
     const { oracle, assert, note } = ctx;
-    let offensive = 0, againstArmour = 0, maxArmour = 0;
+    let offensive = 0, againstArmour = 0, maxArmour = 0, probed = 0;
 
     for (const seed of seeds(60)) {
       const { steps } = playRun(oracle, seed, policy, { maxSteps: 600 });
       for (const { before, action, after } of steps) {
-        if (action.type !== 'call' && action.type !== 'free') continue;
         const b = oracle.view(before);
+
+        if (b.screen === 'encounter' && b.threat) {
+          // Probe every offensive action available here, not only the one the policy chose. A
+          // mutant that makes calling useless causes a greedy policy to stop calling, which would
+          // otherwise blind this criterion to exactly the defect it exists to catch.
+          for (const cand of oracle.legalActions(before)) {
+            if (cand.type !== 'call' && cand.type !== 'free') continue;
+            const pv = oracle.view(oracle.apply(before, cand));
+            const remaining = pv.threat && pv.threat.id === b.threat.id ? pv.threat.integrity : 0;
+            const dealt = b.threat.integrity - remaining;
+            probed += 1;
+            assert.ok(dealt >= 1,
+              `a legal ${cand.type} would deal ${dealt} against armour ${b.threat.armour} (seed ${seed})`);
+          }
+        }
+
+        if (action.type !== 'call' && action.type !== 'free') continue;
         if (b.screen !== 'encounter' || !b.threat) continue;
         const a = oracle.view(after);
 
@@ -35,5 +51,6 @@ export default {
     assert.ok(againstArmour > 0,
       'no offensive action ever met armour — mitigation was never exercised');
     note(`${offensive} offensive actions, ${againstArmour} against armour, highest armour ${maxArmour}`);
+    note(`${probed} legal offensive actions probed at encounter steps`);
   }
 };

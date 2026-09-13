@@ -51,7 +51,7 @@ export const ORACLE_MUTANTS = [
   {
     id: 'm-blunted-call',
     label: 'calling a contact does nothing at all',
-    expect: ['A12', 'A3'],
+    expect: ['A12', 'A16'],
     wrap: o => wrapAll(o, {
       apply: (state, action) => (action.type === 'call' ? state : o.apply(state, action))
     })
@@ -59,7 +59,7 @@ export const ORACLE_MUTANTS = [
   {
     id: 'm-dead-end',
     label: 'legalActions goes empty inside an encounter',
-    expect: ['A6'],
+    expect: ['A6', 'A3'],
     wrap: o => wrapAll(o, {
       legalActions: state => {
         const v = o.view(state);
