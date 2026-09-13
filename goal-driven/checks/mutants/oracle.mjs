@@ -151,15 +151,14 @@ export const ORACLE_MUTANTS = [
   {
     id: 'm-pressure-inert',
     label: 'the pressure mechanic is disabled through the contract',
-    // A14 and A17 are the mutant's original design intent, and are undemonstrable as isolated
-    // kills at scaffolding time: A14 requires disabling the mechanic to *raise* the win rate,
-    // and `faithful.mjs` already wins 200/200 with it active, so no mutant can push that rate
-    // any higher; A17 is symmetric (it too fails this control unconditionally on win rate). Both
-    // stay in `expect` as intent — their lethality can only be demonstrated once a real oracle
-    // exists. A4, A11 and A16 are confirmed genuine kills, found once `faithful.mjs` was made to
-    // honour `disable` (see ORACLE.md's Options): freezing the clock starves A4's landed-harm
-    // guard and trips A11's ceiling-bounds-nothing assertion.
-    expect: ['A4', 'A11', 'A14', 'A16', 'A17'],
+    // A14 is this mutant's design intent, and its kill is undemonstrable at scaffolding time:
+    // A14 requires disabling the mechanic to *raise* the win rate, and `faithful.mjs` already
+    // wins 200/200 with it active, so no mutant can push that rate any higher — its lethality
+    // can only be demonstrated once a real oracle exists. A17 is symmetric (it too fails this
+    // control unconditionally on win rate). A4, A11 and A16 also genuinely kill this mutant
+    // (confirmed once `faithful.mjs` was made to honour `disable` — see ORACLE.md's Options),
+    // but that is reality, not intent: it belongs in the surprises list, not here.
+    expect: ['A14', 'A17'],
     wrap: o => wrapAll(o, {
       newRun: (seed, opts = {}) => {
         const probe = o.view(o.newRun(seed, opts));
