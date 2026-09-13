@@ -96,6 +96,22 @@ that its assertions were a regression guard rather than a proof. This arm has no
 up the difference, so they are measured in a real browser: A8 by intercepting every request, A9
 and A10 by reading laid-out boxes, A7 by desaturating a screenshot and comparing.
 
+### The screen hook
+
+Four criteria have to be measured on every screen, and clicking a path to each one would make the
+bar depend on the build's selectors. The artifact therefore exposes two globals:
+
+```js
+window.__screens          // string[] — every screen name the UI can show
+window.__goto(name)       // put the UI into a representative, populated state for that screen
+```
+
+`__goto` must produce a state a player could actually reach — populated lists, a live encounter,
+real values. A screen rendered empty passes A9 and A10 for the wrong reason.
+
+This is a test hook in shipped code, and that is a deliberate trade: the alternative is a bar that
+breaks whenever a class name changes. It issues no network request and costs nothing at runtime.
+
 ## The criteria, bound
 
 Text inherited verbatim from the traditional arm. The binding column is what a check may read.
