@@ -36,6 +36,12 @@ export default {
         for (const id of v.resources.burned) reached.add(id);
         if (v.threat) reached.add(v.threat.id);
 
+        // Content the build put in front of the player counts as reached, whether or not the
+        // scripted policy chose to take it. Without this, a contact that is always offered and
+        // never accepted reads as missing, and A17 fails for a reason that is about the policy's
+        // preferences rather than about the build's content.
+        for (const o of oracle.allOffers(before)) reached.add(o.id);
+
         if (v.screen === 'encounter') {
           const key = `${seed}:${v.layer}:${v.threat ? v.threat.id : '?'}`;
           if (key !== current) {
