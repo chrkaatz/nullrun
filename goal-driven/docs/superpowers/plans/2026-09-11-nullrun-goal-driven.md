@@ -1900,6 +1900,12 @@ export default {
         for (const id of v.resources.burned) reached.add(id);
         if (v.threat) reached.add(v.threat.id);
 
+        // Content the build put in front of the player counts as reached, whether or not the
+        // scripted policy chose to take it. Without this, a contact that is always offered and
+        // never accepted reads as missing, and A17 fails for a reason that is about the policy's
+        // preferences rather than about the build's content.
+        for (const o of oracle.allOffers(before)) reached.add(o.id);
+
         if (v.screen === 'encounter') {
           const key = `${seed}:${v.layer}:${v.threat ? v.threat.id : '?'}`;
           if (key !== current) {
@@ -2556,14 +2562,20 @@ export const ARTIFACT_MUTANTS = [
       await page.addInitScript(() => {
         window.addEventListener('DOMContentLoaded', () => {
           const s = document.createElement('style');
-          // One background colour, two saturations. CSS saturate() is defined as an interpolation
-          // toward the luminance matrix, so it preserves 0.2126R+0.7152G+0.0722B exactly: these two
-          // are provably identical after grayscale(1) and plainly different before it. Hand-picked
-          // "equal-luminance" hues are not — #7f7f00 and #00807f differ by 17 levels of grey.
+          // One background colour, two saturations. CSS saturate() interpolates toward the
+          // luminance matrix, so in principle it preserves 0.2126R+0.7152G+0.0722B — but only
+          // while every channel stays in gamut. A strong saturation clamps a channel and the
+          // preservation is lost with it: #c04000 at saturate(3) renders a DIFFERENT grey from
+          // the same colour at saturate(0.2), which would make this mutant catchable without
+          // testing anything about colour.
+          //
+          // These values were measured in Chromium, not derived: #998877 at saturate(1.4) and
+          // saturate(0.6) renders two distinct colours and a single identical grey, stably
+          // across runs. Change them only against a fresh measurement.
           s.textContent = `
-            button,[role="button"]{background:#c04000!important;color:#000!important;font-size:0!important;width:100px!important;height:48px!important}
-            button:nth-of-type(odd),[role="button"]:nth-of-type(odd){filter:saturate(3)!important}
-            button:nth-of-type(even),[role="button"]:nth-of-type(even){filter:saturate(0.2)!important}`;
+            button,[role="button"]{background:#998877!important;color:#000!important;font-size:0!important;width:100px!important;height:48px!important}
+            button:nth-of-type(odd),[role="button"]:nth-of-type(odd){filter:saturate(1.4)!important}
+            button:nth-of-type(even),[role="button"]:nth-of-type(even){filter:saturate(0.6)!important}`;
           document.head.appendChild(s);
         });
       });
