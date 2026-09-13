@@ -2108,12 +2108,14 @@ export default {
       const m = await page.evaluate(() => {
         const d = document.documentElement;
         let widest = null, widestRight = d.clientWidth;
+        let laidOut = 0;
         for (const el of document.querySelectorAll('*')) {
           const r = el.getBoundingClientRect();
           if (r.width === 0 && r.height === 0) continue;
+          laidOut += 1;
           if (r.right > widestRight) { widestRight = r.right; widest = el.tagName + (el.className ? '.' + String(el.className).split(' ')[0] : ''); }
         }
-        return { scrollWidth: d.scrollWidth, clientWidth: d.clientWidth, widest, widestRight };
+        return { scrollWidth: d.scrollWidth, clientWidth: d.clientWidth, widest, widestRight, laidOut };
       });
       report.push(m);
     });
@@ -2123,8 +2125,13 @@ export default {
       assert.ok(m.scrollWidth <= m.clientWidth,
         `screen "${screens[i]}" scrolls horizontally: ${m.scrollWidth}px content in ${m.clientWidth}px` +
         (m.widest ? `, widest element ${m.widest} reaching ${Math.round(m.widestRight)}px` : ''));
+      // A screen with nothing laid out never scrolls, so it satisfies this criterion without
+      // demonstrating anything. The contract requires __goto to produce a state a player could
+      // actually reach; this is what enforces it.
+      assert.ok(m.laidOut >= 5,
+        `screen "${screens[i]}" rendered only ${m.laidOut} laid-out elements — too empty to prove anything about layout`);
     }
-    note(`measured ${report.length} screens at 360×780; widest content ${Math.max(...report.map(r => r.scrollWidth))}px`);
+    note(`measured ${report.length} screens at 360×780; widest content ${Math.max(...report.map(r => r.scrollWidth))}px; laid-out elements per screen: ${report.map(r => r.laidOut).join(', ')}`);
   }
 };
 ```
@@ -2228,14 +2235,19 @@ export default {
       };
 
       const colour = await shot();
-      await page.addStyleTag({ content: 'html{filter:grayscale(1)!important}' });
+      const greyTag = await page.addStyleTag({ content: 'html{filter:grayscale(1)!important}' });
       await page.waitForTimeout(60);
       const grey = await shot();
-      await page.evaluate(() => {
-        const tags = [...document.querySelectorAll('style')];
-        const last = tags.at(-1);
-        if (last && last.textContent.includes('grayscale(1)')) last.remove();
-      });
+      await greyTag.evaluate(el => el.remove());
+
+      // The removal above can only fail loudly, never silently: if the filter stayed on, every
+      // later screen would be shot desaturated in both passes and A7 would pass for the wrong
+      // reason — colour and greyscale hashes matching everywhere, not because nothing differs.
+      const restored = hash(await page.screenshot({
+        clip: { x: boxes[0].x, y: boxes[0].y, width: boxes[0].w, height: boxes[0].h }
+      }));
+      assert.equal(restored, colour[0],
+        `the greyscale filter did not lift after screen "${name}" — every later screen would be compared against itself`);
 
       for (let i = 0; i < boxes.length; i++) {
         for (let j = i + 1; j < boxes.length; j++) {
