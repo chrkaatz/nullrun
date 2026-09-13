@@ -45,14 +45,19 @@ export default {
       };
 
       const colour = await shot();
-      await page.addStyleTag({ content: 'html{filter:grayscale(1)!important}' });
+      const greyTag = await page.addStyleTag({ content: 'html{filter:grayscale(1)!important}' });
       await page.waitForTimeout(60);
       const grey = await shot();
-      await page.evaluate(() => {
-        const tags = [...document.querySelectorAll('style')];
-        const last = tags.at(-1);
-        if (last && last.textContent.includes('grayscale(1)')) last.remove();
-      });
+      await greyTag.evaluate(el => el.remove());
+
+      // The removal above can only fail loudly, never silently: if the filter stayed on, every
+      // later screen would be shot desaturated in both passes and A7 would pass for the wrong
+      // reason — colour and greyscale hashes matching everywhere, not because nothing differs.
+      const restored = hash(await page.screenshot({
+        clip: { x: boxes[0].x, y: boxes[0].y, width: boxes[0].w, height: boxes[0].h }
+      }));
+      assert.equal(restored, colour[0],
+        `the greyscale filter did not lift after screen "${name}" — every later screen would be compared against itself`);
 
       for (let i = 0; i < boxes.length; i++) {
         for (let j = i + 1; j < boxes.length; j++) {
