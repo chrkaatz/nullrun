@@ -6,8 +6,13 @@ import { ORACLE_MUTANTS } from './mutants/oracle.mjs';
 import { ARTIFACT_MUTANTS } from './mutants/artifact.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const oraclePath = resolve(here, '..', 'oracle.mjs');
-const artifactPath = resolve(here, '..', 'nullrun.html');
+
+function arg(name, fallback) {
+  const i = process.argv.indexOf(name);
+  return i === -1 ? fallback : process.argv[i + 1];
+}
+const oraclePath = resolve(here, '..', arg('--oracle', 'oracle.mjs'));
+const artifactPath = resolve(here, '..', arg('--artifact', 'nullrun.html'));
 
 async function exists(p) { try { await access(p); return true; } catch { return false; } }
 

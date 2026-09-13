@@ -53,7 +53,7 @@ export const ORACLE_MUTANTS = [
   {
     id: 'm-blunted-call',
     label: 'calling a contact does nothing at all',
-    expect: ['A12', 'A16'],
+    expect: ['A12', 'A3', 'A16'],
     wrap: o => wrapAll(o, {
       apply: (state, action) => (action.type === 'call' ? state : o.apply(state, action))
     })

@@ -123,6 +123,17 @@ export default {
             assert.equal(b.credits - probedView.resources.credits, offer.cost,
               `taking ${cand.id} charged ${b.credits - probedView.resources.credits} against a declared price of ${offer.cost} (${where})`);
           }
+          if (cand.type === 'call') {
+            const pr = probedView.resources;
+            assert.equal(pr.burned.length, b.burned.length + 1,
+              `a legal call would burn ${pr.burned.length - b.burned.length} ids, expected 1 (${where})`);
+            assert.equal(pr.burned.at(-1), cand.id,
+              `a legal call would burn the wrong id (${where})`);
+            assert.ok(b.roster.includes(cand.id) && !pr.roster.includes(cand.id),
+              `a legal call would not remove ${cand.id} from the roster (${where})`);
+            assert.ok(pr.ram < b.ram,
+              `a legal call would leave ram at ${b.ram} — it would spend nothing (${where})`);
+          }
           if (cand.type === 'bail') {
             const pr = probedView.resources;
             const pAdded = pr.roster.filter(id => !b.roster.includes(id));
