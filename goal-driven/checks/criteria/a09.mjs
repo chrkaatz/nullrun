@@ -31,6 +31,12 @@ export default {
       assert.ok(m.scrollWidth <= m.clientWidth,
         `screen "${screens[i]}" scrolls horizontally: ${m.scrollWidth}px content in ${m.clientWidth}px` +
         (m.widest ? `, widest element ${m.widest} reaching ${Math.round(m.widestRight)}px` : ''));
+      // overflow-x: hidden satisfies the scroll check by clipping rather than fitting — the
+      // content is still off the screen, it is merely unreadable instead of reachable. Bounding
+      // boxes report true geometry regardless of clipping, so this catches what scrollWidth cannot.
+      assert.ok(m.widestRight <= m.clientWidth + 1,
+        `screen "${screens[i]}" has content reaching ${Math.round(m.widestRight)}px in a ${m.clientWidth}px viewport` +
+        (m.widest ? ` (${m.widest})` : '') + ' — clipped rather than fitted');
       // A screen with nothing laid out never scrolls, so it satisfies this criterion without
       // demonstrating anything. The checks now drive __render with states the oracle actually
       // produced (ORACLE.md, the render hook), but a build could still render one thin sparsely;
