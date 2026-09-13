@@ -96,18 +96,27 @@ that its assertions were a regression guard rather than a proof. This arm has no
 up the difference, so they are measured in a real browser: A8 by intercepting every request, A9
 and A10 by reading laid-out boxes, A7 by desaturating a screenshot and comparing.
 
-### The screen hook
+### The render hook
 
-Four criteria have to be measured on every screen, and clicking a path to each one would make the
-bar depend on the build's selectors. The artifact therefore exposes two globals:
+Four criteria are measured on what is actually on screen. Letting the build choose what to show
+them would let it render a flattering facsimile, so the build does not choose: the checks feed it
+states the oracle itself produced.
 
 ```js
-window.__screens          // string[] — every screen name the UI can show
-window.__goto(name)       // put the UI into a representative, populated state for that screen
+window.__render(view)   // render the UI for a View exactly as the oracle produced it
+window.__screens        // string[] — every screen name the UI can show
 ```
 
-`__goto` must produce a state a player could actually reach — populated lists, a live encounter,
-real values. A screen rendered empty passes A9 and A10 for the wrong reason.
+`__render` takes a `View` — the same shape `view(state)` returns on Surface 1 — and renders the
+interface for it. It must complete its render **synchronously** before returning: it is a test
+hook, it may skip animation, and an asynchronous render makes every measurement a race.
+
+`__render` must not invent content. Whatever the `View` says the player holds is what the screen
+shows.
+
+**Every interactive control must be reachable by a standard selector** — a `<button>`, an
+`<a href>`, or an element carrying `role` or `tabindex`. A control the bar cannot see is a control
+the bar cannot check, and a `<div>` with a click handler is invisible to it.
 
 This is a test hook in shipped code, and that is a deliberate trade: the alternative is a bar that
 breaks whenever a class name changes. It issues no network request and costs nothing at runtime.

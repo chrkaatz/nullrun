@@ -1,4 +1,4 @@
-import { visitScreens } from '../lib/screens.mjs';
+import { visitStates } from '../lib/screens.mjs';
 
 export default {
   id: 'A9',
@@ -6,11 +6,11 @@ export default {
   surface: 'artifact',
 
   async run(ctx) {
-    const { page, artifactPath, assert, note } = ctx;
+    const { page, artifactPath, oracle, assert, note } = ctx;
     const report = [];
 
     await page.setViewportSize({ width: 360, height: 780 });
-    const screens = await visitScreens(page, artifactPath, async () => {
+    const screens = await visitStates(page, artifactPath, oracle, async () => {
       const m = await page.evaluate(() => {
         const d = document.documentElement;
         let widest = null, widestRight = d.clientWidth;
@@ -32,8 +32,9 @@ export default {
         `screen "${screens[i]}" scrolls horizontally: ${m.scrollWidth}px content in ${m.clientWidth}px` +
         (m.widest ? `, widest element ${m.widest} reaching ${Math.round(m.widestRight)}px` : ''));
       // A screen with nothing laid out never scrolls, so it satisfies this criterion without
-      // demonstrating anything. The contract requires __goto to produce a state a player could
-      // actually reach; this is what enforces it.
+      // demonstrating anything. The checks now drive __render with states the oracle actually
+      // produced (ORACLE.md, the render hook), but a build could still render one thin sparsely;
+      // this is what enforces it.
       assert.ok(m.laidOut >= 5,
         `screen "${screens[i]}" rendered only ${m.laidOut} laid-out elements — too empty to prove anything about layout`);
     }

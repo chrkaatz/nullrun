@@ -1,4 +1,4 @@
-import { visitScreens, INTERACTIVE } from '../lib/screens.mjs';
+import { visitStates, INTERACTIVE } from '../lib/screens.mjs';
 
 export default {
   id: 'A10',
@@ -6,12 +6,12 @@ export default {
   surface: 'artifact',
 
   async run(ctx) {
-    const { page, artifactPath, assert, note } = ctx;
+    const { page, artifactPath, oracle, assert, note } = ctx;
     const offenders = [];
     let measured = 0;
 
     await page.setViewportSize({ width: 360, height: 780 });
-    await visitScreens(page, artifactPath, async (name) => {
+    await visitStates(page, artifactPath, oracle, async (name) => {
       const boxes = await page.evaluate(sel => {
         const out = [];
         for (const el of document.querySelectorAll(sel)) {

@@ -41,15 +41,18 @@ export async function runOracleCriterion(criterion, oracle) {
   }
 }
 
-export async function runArtifactCriterion(criterion, artifactPath) {
+export async function runArtifactCriterion(criterion, artifactPath, oracle) {
   const { chromium } = await import('playwright');
   const notes = [];
   const browser = await chromium.launch();
-  const context = await browser.newContext({ viewport: { width: 360, height: 780 } });
+  const context = await browser.newContext({
+    viewport: { width: 360, height: 780 },
+    serviceWorkers: 'block'
+  });
   const page = await context.newPage();
   const t0 = Date.now();
   try {
-    const ctx = { page, context, artifactPath, assert, note: s => notes.push(String(s)) };
+    const ctx = { page, context, artifactPath, oracle, assert, note: s => notes.push(String(s)) };
     await criterion.run(ctx);
     return { status: 'pass', message: null, notes, ms: Date.now() - t0 };
   } catch (e) {
@@ -103,10 +106,12 @@ async function main() {
       r = haveOracle
         ? await runOracleCriterion(c, await import(pathToFileURL(oraclePath).href))
         : { status: 'fail', message: `no oracle at ${oraclePath}`, notes: [], ms: 0 };
+    } else if (!haveArtifact) {
+      r = { status: 'fail', message: `no artifact at ${artifactPath}`, notes: [], ms: 0 };
+    } else if (!haveOracle) {
+      r = { status: 'fail', message: `no oracle at ${oraclePath}`, notes: [], ms: 0 };
     } else {
-      r = haveArtifact
-        ? await runArtifactCriterion(c, artifactPath)
-        : { status: 'fail', message: `no artifact at ${artifactPath}`, notes: [], ms: 0 };
+      r = await runArtifactCriterion(c, artifactPath, await import(pathToFileURL(oraclePath).href));
     }
     results.push({ id: c.id, title: c.title, surface: c.surface, ...r });
     console.log(`${r.status === 'pass' ? 'ok  ' : 'FAIL'} ${c.id}  ${c.title}` +

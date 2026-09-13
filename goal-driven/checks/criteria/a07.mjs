@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { visitScreens, INTERACTIVE } from '../lib/screens.mjs';
+import { visitStates, INTERACTIVE } from '../lib/screens.mjs';
 
 const hash = buf => createHash('sha1').update(buf).digest('hex');
 
@@ -11,36 +11,32 @@ export default {
   surface: 'artifact',
 
   async run(ctx) {
-    const { page, artifactPath, assert, note } = ctx;
+    const { page, artifactPath, oracle, assert, note } = ctx;
     const collisions = [];
     let compared = 0;
 
     await page.setViewportSize({ width: 360, height: 780 });
-    await visitScreens(page, artifactPath, async (name) => {
-      const boxes = await page.evaluate(sel => {
-        const out = [];
-        for (const el of document.querySelectorAll(sel)) {
-          const r = el.getBoundingClientRect();
-          const s = getComputedStyle(el);
-          if (s.display === 'none' || s.visibility === 'hidden') continue;
-          if (r.width < 4 || r.height < 4) continue;
-          // screenshot({clip}) cannot reach past the fold, so compare only what is on screen.
-          if (r.y < 0 || r.y + r.height > window.innerHeight) continue;
-          out.push({
-            label: (el.textContent || '').trim().slice(0, 30),
-            x: Math.round(r.x), y: Math.round(r.y),
-            w: Math.round(r.width), h: Math.round(r.height)
-          });
-        }
-        return out;
-      }, INTERACTIVE);
-      if (boxes.length < 2) return;
+    await visitStates(page, artifactPath, oracle, async (name) => {
+      const handles = await page.$$(INTERACTIVE);
+      const items = [];
+      for (const el of handles) {
+        // elementHandle.screenshot() auto-scrolls the element into view first, so unlike
+        // page.screenshot({clip}) it can reach controls past the fold on a scrolling screen.
+        const box = await el.boundingBox();
+        if (!box || box.width < 4 || box.height < 4) continue;
+        const visible = await el.evaluate(node => {
+          const s = getComputedStyle(node);
+          return s.display !== 'none' && s.visibility !== 'hidden';
+        });
+        if (!visible) continue;
+        const label = await el.evaluate(node => (node.textContent || '').trim().slice(0, 30));
+        items.push({ el, label, w: Math.round(box.width), h: Math.round(box.height) });
+      }
+      if (items.length < 2) return;
 
       const shot = async () => {
         const out = [];
-        for (const b of boxes) {
-          out.push(hash(await page.screenshot({ clip: { x: b.x, y: b.y, width: b.w, height: b.h } })));
-        }
+        for (const it of items) out.push(hash(await it.el.screenshot()));
         return out;
       };
 
@@ -53,18 +49,16 @@ export default {
       // The removal above can only fail loudly, never silently: if the filter stayed on, every
       // later screen would be shot desaturated in both passes and A7 would pass for the wrong
       // reason — colour and greyscale hashes matching everywhere, not because nothing differs.
-      const restored = hash(await page.screenshot({
-        clip: { x: boxes[0].x, y: boxes[0].y, width: boxes[0].w, height: boxes[0].h }
-      }));
+      const restored = hash(await items[0].el.screenshot());
       assert.equal(restored, colour[0],
         `the greyscale filter did not lift after screen "${name}" — every later screen would be compared against itself`);
 
-      for (let i = 0; i < boxes.length; i++) {
-        for (let j = i + 1; j < boxes.length; j++) {
-          if (boxes[i].w !== boxes[j].w || boxes[i].h !== boxes[j].h) continue;
+      for (let i = 0; i < items.length; i++) {
+        for (let j = i + 1; j < items.length; j++) {
+          if (items[i].w !== items[j].w || items[i].h !== items[j].h) continue;
           compared += 1;
           if (colour[i] !== colour[j] && grey[i] === grey[j]) {
-            collisions.push(`${name}: "${boxes[i].label}" and "${boxes[j].label}" differ only in colour`);
+            collisions.push(`${name}: "${items[i].label}" and "${items[j].label}" differ only in colour`);
           }
         }
       }
