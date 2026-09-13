@@ -10,12 +10,27 @@ returns is JSON-serializable: no class instances, no `Map`, no `Set`, no functio
 as a value. A state must survive `JSON.parse(JSON.stringify(state))` unchanged.
 
 ```js
-export function newRun(seed)                  // number -> State
+export function newRun(seed, options = {})   // (number, Options) -> State
 export function legalActions(state)           // State -> Action[]
 export function allOffers(state)              // State -> Offer[]
 export function apply(state, action)          // (State, Action) -> State
 export function view(state)                   // State -> View
 ```
+
+### `Options`
+
+```js
+{ disable?: string[] }   // mechanic ids to neutralise for this run
+```
+
+A mechanic id is any value that appears as `view().pressure.id` or `view().free.id`. Disabling one
+must make it inert — the pressure meter never advances, or the free action does nothing — while
+leaving the rest of the game intact and still playable.
+
+This exists because A14 says *every pressure mechanic must bind: removing it changes outcomes
+materially*, and there is no way to measure that without removing it. A mechanic the bar cannot
+remove is a mechanic the bar cannot check. `newRun(seed)` with no options is the real game, and is
+what every other criterion measures.
 
 **`apply` is pure.** It returns a new state and never mutates its argument. Applying an action
 not present in `legalActions(state)` returns a state deep-equal to the input (A5).
