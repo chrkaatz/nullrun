@@ -272,8 +272,9 @@ remove is a mechanic the bar cannot check. `newRun(seed)` with no options is the
 what every other criterion measures.
 
 Disabling a mechanic must not make `turnsAllowed` unbounded. A run with its pressure mechanic
-inert still reports a finite turn count — the ceiling the mechanic would have imposed at full
-health is the natural value. A14 compares outcomes with the mechanic and without it, and an
+inert still reports a finite turn count. The natural value is the one the mechanic would have
+allowed from an empty meter — the same number `turnsAllowed` reports on the first turn of an
+encounter when the mechanic is active. A14 compares outcomes with the mechanic and without it, and an
 unbounded turn count does not produce a better outcome, it produces a run that never ends.
 
 **`apply` is pure.** It returns a new state and never mutates its argument. Applying an action
