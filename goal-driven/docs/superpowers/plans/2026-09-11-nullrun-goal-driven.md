@@ -249,12 +249,32 @@ returns is JSON-serializable: no class instances, no `Map`, no `Set`, no functio
 as a value. A state must survive `JSON.parse(JSON.stringify(state))` unchanged.
 
 ```js
-export function newRun(seed)                  // number -> State
+export function newRun(seed, options = {})   // (number, Options) -> State
 export function legalActions(state)           // State -> Action[]
 export function allOffers(state)              // State -> Offer[]
 export function apply(state, action)          // (State, Action) -> State
 export function view(state)                   // State -> View
 ```
+
+### `Options`
+
+```js
+{ disable?: string[] }   // mechanic ids to neutralise for this run
+```
+
+A mechanic id is any value that appears as `view().pressure.id` or `view().free.id`. Disabling one
+must make it inert — the pressure meter never advances, or the free action does nothing — while
+leaving the rest of the game intact and still playable.
+
+This exists because A14 says *every pressure mechanic must bind: removing it changes outcomes
+materially*, and there is no way to measure that without removing it. A mechanic the bar cannot
+remove is a mechanic the bar cannot check. `newRun(seed)` with no options is the real game, and is
+what every other criterion measures.
+
+Disabling a mechanic must not make `turnsAllowed` unbounded. A run with its pressure mechanic
+inert still reports a finite turn count — the ceiling the mechanic would have imposed at full
+health is the natural value. A14 compares outcomes with the mechanic and without it, and an
+unbounded turn count does not produce a better outcome, it produces a run that never ends.
 
 **`apply` is pure.** It returns a new state and never mutates its argument. Applying an action
 not present in `legalActions(state)` returns a state deep-equal to the input (A5).
@@ -334,6 +354,31 @@ screen and cannot bind to a headless API.
 that its assertions were a regression guard rather than a proof. This arm has no reviewer to make
 up the difference, so they are measured in a real browser: A8 by intercepting every request, A9
 and A10 by reading laid-out boxes, A7 by desaturating a screenshot and comparing.
+
+### The render hook
+
+Four criteria are measured on what is actually on screen. Letting the build choose what to show
+them would let it render a flattering facsimile, so the build does not choose: the checks feed it
+states the oracle itself produced.
+
+```js
+window.__render(view)   // render the UI for a View exactly as the oracle produced it
+window.__screens        // string[] — every screen name the UI can show
+```
+
+`__render` takes a `View` — the same shape `view(state)` returns on Surface 1 — and renders the
+interface for it. It must complete its render **synchronously** before returning: it is a test
+hook, it may skip animation, and an asynchronous render makes every measurement a race.
+
+`__render` must not invent content. Whatever the `View` says the player holds is what the screen
+shows.
+
+**Every interactive control must be reachable by a standard selector** — a `<button>`, an
+`<a href>`, or an element carrying `role` or `tabindex`. A control the bar cannot see is a control
+the bar cannot check, and a `<div>` with a click handler is invisible to it.
+
+This is a test hook in shipped code, and that is a deliberate trade: the alternative is a bar that
+breaks whenever a class name changes. It issues no network request and costs nothing at runtime.
 
 ## The criteria, bound
 
@@ -602,6 +647,16 @@ export default {
         }
         for (const t of ['call', 'free', 'end', 'take', 'release', 'onward', 'bail']) {
           if (!legalKeys.has(t + '/')) illegal.push({ type: t });
+        }
+
+        // A `call` naming an id the player cannot afford or has already burned is the canonical
+        // unaffordable action in a game where calls cost a resource and each contact answers
+        // once — and the bare `{type: 'call'}` probe above never constructs it. Probe every id
+        // the player might plausibly try: everything on the roster, and everything burned.
+        const v = oracle.view(before);
+        for (const id of [...v.resources.roster, ...v.resources.burned]) {
+          const key = 'call/' + id;
+          if (!legalKeys.has(key)) illegal.push({ type: 'call', id });
         }
 
         for (const action of illegal) {
@@ -1640,8 +1695,8 @@ import { policy } from '../policy.mjs';
 function clears(oracle, state, offerId) {
   const take = oracle.legalActions(state).find(a => a.type === 'take' && a.id === offerId);
   if (!take) return null;                       // not offered as a legal take: not this check's business
+  const startLayer = oracle.view(state).layer;
   let s = oracle.apply(state, take);
-  const startLayer = oracle.view(s).layer;
   for (let i = 0; i < 400; i++) {
     const v = oracle.view(s);
     if (v.terminal) return v.outcome === 'win';
@@ -1937,7 +1992,7 @@ export default {
       if (finalView.outcome === 'win') wins += 1;
 
       let current = null, currentDecisions = 0;
-      for (const { before, action } of steps) {
+      for (const { before, action, after } of steps) {
         const v = oracle.view(before);
         for (const id of v.resources.roster) reached.add(id);
         for (const id of v.resources.burned) reached.add(id);
@@ -1948,6 +2003,18 @@ export default {
         // never accepted reads as missing, and A17 fails for a reason that is about the policy's
         // preferences rather than about the build's content.
         for (const o of oracle.allOffers(before)) reached.add(o.id);
+
+        // An encounter that resolves before the player ever acts leaves no trace in the
+        // 'encounter' screen at all — the take moves straight from 'offers' to whatever comes
+        // next, never passing through 'encounter'. That is still an encounter, and it is an
+        // empty one: detect it at the transition, where the grouping loop below never sees it.
+        if (action.type === 'take' && v.screen === 'offers') {
+          const av = oracle.view(after);
+          if (av.screen !== 'encounter') {
+            encounters += 1;
+            emptyEncounters += 1;
+          }
+        }
 
         if (v.screen === 'encounter') {
           const key = `${seed}:${v.layer}:${v.threat ? v.threat.id : '?'}`;
