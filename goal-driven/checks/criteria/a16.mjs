@@ -6,8 +6,8 @@ import { policy } from '../policy.mjs';
 function clears(oracle, state, offerId) {
   const take = oracle.legalActions(state).find(a => a.type === 'take' && a.id === offerId);
   if (!take) return null;                       // not offered as a legal take: not this check's business
+  const startLayer = oracle.view(state).layer;
   let s = oracle.apply(state, take);
-  const startLayer = oracle.view(s).layer;
   for (let i = 0; i < 400; i++) {
     const v = oracle.view(s);
     if (v.terminal) return v.outcome === 'win';

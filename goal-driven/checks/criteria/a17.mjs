@@ -30,7 +30,7 @@ export default {
       if (finalView.outcome === 'win') wins += 1;
 
       let current = null, currentDecisions = 0;
-      for (const { before, action } of steps) {
+      for (const { before, action, after } of steps) {
         const v = oracle.view(before);
         for (const id of v.resources.roster) reached.add(id);
         for (const id of v.resources.burned) reached.add(id);
@@ -41,6 +41,18 @@ export default {
         // never accepted reads as missing, and A17 fails for a reason that is about the policy's
         // preferences rather than about the build's content.
         for (const o of oracle.allOffers(before)) reached.add(o.id);
+
+        // An encounter that resolves before the player ever acts leaves no trace in the
+        // 'encounter' screen at all — the take moves straight from 'offers' to whatever comes
+        // next, never passing through 'encounter'. That is still an encounter, and it is an
+        // empty one: detect it at the transition, where the grouping loop below never sees it.
+        if (action.type === 'take' && v.screen === 'offers') {
+          const av = oracle.view(after);
+          if (av.screen !== 'encounter') {
+            encounters += 1;
+            emptyEncounters += 1;
+          }
+        }
 
         if (v.screen === 'encounter') {
           const key = `${seed}:${v.layer}:${v.threat ? v.threat.id : '?'}`;

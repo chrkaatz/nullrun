@@ -29,6 +29,16 @@ export default {
           if (!legalKeys.has(t + '/')) illegal.push({ type: t });
         }
 
+        // A `call` naming an id the player cannot afford or has already burned is the canonical
+        // unaffordable action in a game where calls cost a resource and each contact answers
+        // once — and the bare `{type: 'call'}` probe above never constructs it. Probe every id
+        // the player might plausibly try: everything on the roster, and everything burned.
+        const v = oracle.view(before);
+        for (const id of [...v.resources.roster, ...v.resources.burned]) {
+          const key = 'call/' + id;
+          if (!legalKeys.has(key)) illegal.push({ type: 'call', id });
+        }
+
         for (const action of illegal) {
           const guard = clone(before);
           const after = oracle.apply(before, action);

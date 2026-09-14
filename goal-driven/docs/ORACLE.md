@@ -32,6 +32,11 @@ materially*, and there is no way to measure that without removing it. A mechanic
 remove is a mechanic the bar cannot check. `newRun(seed)` with no options is the real game, and is
 what every other criterion measures.
 
+Disabling a mechanic must not make `turnsAllowed` unbounded. A run with its pressure mechanic
+inert still reports a finite turn count — the ceiling the mechanic would have imposed at full
+health is the natural value. A14 compares outcomes with the mechanic and without it, and an
+unbounded turn count does not produce a better outcome, it produces a run that never ends.
+
 **`apply` is pure.** It returns a new state and never mutates its argument. Applying an action
 not present in `legalActions(state)` returns a state deep-equal to the input (A5).
 
