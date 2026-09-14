@@ -17,14 +17,14 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 REPO = ROOT.parent
 STAGED = '--staged' in sys.argv
-INHERITED = REPO / 'traditional' / 'docs' / 'superpowers' / 'specs' / '2026-09-10-nullrun-traditional-design.md'
+INHERITED_REL = 'traditional/docs/superpowers/specs/2026-09-10-nullrun-traditional-design.md'
 
 problems = []
 
 
 def _prefix():
     r = subprocess.run(['git', 'rev-parse', '--show-toplevel'], cwd=ROOT,
-                       capture_output=True, text=True)
+                       capture_output=True, text=True, timeout=30)
     if r.returncode != 0:
         return ''
     top = pathlib.Path(r.stdout.strip()).resolve()
@@ -39,11 +39,29 @@ def read(rel):
     """Staged content when linting a commit, else the working tree. '' if absent."""
     if STAGED:
         for ref in (f':{PREFIX}{rel}', f'HEAD:{PREFIX}{rel}'):
-            r = subprocess.run(['git', 'show', ref], cwd=ROOT, capture_output=True, text=True)
+            r = subprocess.run(['git', 'show', ref], cwd=ROOT, capture_output=True, text=True,
+                               timeout=30)
             if r.returncode == 0:
                 return r.stdout
         return ''
     p = ROOT / rel
+    return p.read_text() if p.exists() else ''
+
+
+def read_repo(rel):
+    """Staged content for a path anywhere in the repository, not just this arm.
+
+    The inherited design document lives in traditional/, outside ROOT, so read()
+    cannot serve it — that helper prefixes paths with this arm's directory.
+    """
+    if STAGED:
+        for ref in (f':{rel}', f'HEAD:{rel}'):
+            r = subprocess.run(['git', 'show', ref], cwd=ROOT, capture_output=True, text=True,
+                               timeout=30)
+            if r.returncode == 0:
+                return r.stdout
+        return ''
+    p = REPO / rel
     return p.read_text() if p.exists() else ''
 
 
@@ -53,7 +71,7 @@ def listdir(rel):
         # PREFIX would double it (PREFIX is only for git-show refs, which take a
         # path from the repo top regardless of cwd).
         r = subprocess.run(['git', 'ls-files', rel], cwd=ROOT,
-                           capture_output=True, text=True)
+                           capture_output=True, text=True, timeout=30)
         if r.returncode != 0:
             return []
         names = [pathlib.Path(line).name for line in r.stdout.splitlines() if line.strip()]
@@ -69,7 +87,7 @@ def field(src, name):
 
 
 def inherited_titles():
-    text = INHERITED.read_text() if INHERITED.exists() else ''
+    text = read_repo(INHERITED_REL)
     out = {}
     for m in re.finditer(r'^\|\s*(A\d+)\s*\|\s*(.+?)\s*\|', text, re.M):
         out[m.group(1)] = m.group(2).replace('**', '').strip()
@@ -89,6 +107,20 @@ for f in files:
         problems.append(f'duplicate criterion id {cid}')
     found[cid] = (f, src)
 
+titles = inherited_titles()
+if not titles:
+    problems.append(f'cannot read the inherited criteria from {INHERITED_REL}')
+
+# Derive what MUST exist from the inherited bar, not from what is present. Checking the
+# present set against itself is how deleting everything passed clean: an empty set has no
+# gaps, no drift and no duplicates.
+want = set(titles)
+missing = sorted(want - set(found), key=lambda c: int(c[1:]))
+if missing:
+    problems.append('criteria absent entirely: ' + ', '.join(missing) +
+                    ' — the inherited bar lists ' + str(len(want)) + ' criteria and ' +
+                    str(len(found)) + ' are present')
+
 nums = sorted(int(c[1:]) for c in found if re.fullmatch(r'A\d+', c))
 if nums:
     gaps = [n for n in range(1, max(nums) + 1) if n not in nums]
@@ -100,9 +132,6 @@ if nums and max(nums) < 17:
     problems.append(f'only A1..A{max(nums)} present; the inherited bar is A1..A17')
 
 # --- titles match the inherited bar verbatim --------------------------------
-titles = inherited_titles()
-if not titles:
-    problems.append(f'cannot read the inherited criteria from {INHERITED}')
 for cid, (fname, src) in sorted(found.items()):
     want = titles.get(cid)
     got = field(src, 'title')
@@ -161,18 +190,35 @@ run_selftest = checks_touched
 if STAGED and checks_touched:
     # Same cwd-vs-PREFIX note as listdir(): cwd is already ROOT, so the pathspec
     # is 'checks', not PREFIX + 'checks' (which would point outside the arm).
-    r = subprocess.run(['git', 'diff', '--quiet', '--', 'checks'], cwd=ROOT)
+    r = subprocess.run(['git', 'diff', '--quiet', '--', 'checks'], cwd=ROOT, timeout=30)
     if r.returncode != 0:
         problems.append('checks/ has unstaged changes, so the selftest cannot speak for what is '
                         'being committed — stage them or revert them')
         run_selftest = False
 if run_selftest:
-    r = subprocess.run(['node', 'checks/run.mjs', '--selftest'],
-                       cwd=ROOT, capture_output=True, text=True)
-    if r.returncode != 0:
-        failing = [l for l in r.stdout.splitlines() if l.startswith('FAIL')]
-        problems.append('the check suite fails its own selftest:\n    ' +
-                        '\n    '.join(failing or [r.stderr.strip()[:200]]))
+    # The shared hook runs every arm's linter on every commit, so a crash or a hang here
+    # would block commits to ephemeral and traditional too — never let this call take the
+    # whole repository down with it.
+    try:
+        r = subprocess.run(['node', 'checks/run.mjs', '--selftest'],
+                           cwd=ROOT, capture_output=True, text=True, timeout=180)
+    except FileNotFoundError:
+        problems.append('node is not on PATH, so the check suite could not be run against itself')
+    except subprocess.TimeoutExpired:
+        problems.append('the check suite did not finish its selftest within 180 seconds')
+    else:
+        if r.returncode != 0:
+            failing = [l for l in r.stdout.splitlines() if l.startswith('FAIL')]
+            problems.append('the check suite fails its own selftest:\n    ' +
+                            '\n    '.join(failing or [r.stderr.strip()[:200]]))
+
+# --- every criterion asserts something ---------------------------------------
+# The selftest above only reaches the thirteen oracle-surface criteria (A1-A6, A11-A17);
+# A7-A10 live on the artifact surface and cannot be run without a build. At minimum,
+# require every criterion to contain an assertion — a body with no assertion can't fail.
+for cid, (fname, src) in sorted(found.items()):
+    if 'assert' not in src:
+        problems.append(f'{cid} ({fname}) contains no assertion — it cannot fail')
 
 if problems:
     print('speclint (goal-driven):')
