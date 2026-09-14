@@ -49,7 +49,10 @@ def read(rel):
 
 def listdir(rel):
     if STAGED:
-        r = subprocess.run(['git', 'ls-files', PREFIX + rel], cwd=ROOT,
+        # cwd is already ROOT (inside the arm), so the pathspec is relative to it —
+        # PREFIX would double it (PREFIX is only for git-show refs, which take a
+        # path from the repo top regardless of cwd).
+        r = subprocess.run(['git', 'ls-files', rel], cwd=ROOT,
                            capture_output=True, text=True)
         if r.returncode != 0:
             return []
@@ -148,6 +151,28 @@ if (ROOT / 'oracle.mjs').exists():
                 problems.append('mutants no criterion catches: ' + ', '.join(matrix['survivors']))
             if not matrix.get('lethal'):
                 problems.append('the kill matrix is not lethal — K-prime is not satisfied')
+
+# --- a criterion that keeps its title while its check is gutted -------------
+# The title check above compares a string; nothing in it looks at the assertion
+# underneath. A hollowed-out criterion passes the hollow fixture, which breaks its
+# own declared verdict — so run the suite's self-test and let it say so.
+checks_touched = any(f.endswith('.mjs') for f in listdir('checks/criteria'))
+run_selftest = checks_touched
+if STAGED and checks_touched:
+    # Same cwd-vs-PREFIX note as listdir(): cwd is already ROOT, so the pathspec
+    # is 'checks', not PREFIX + 'checks' (which would point outside the arm).
+    r = subprocess.run(['git', 'diff', '--quiet', '--', 'checks'], cwd=ROOT)
+    if r.returncode != 0:
+        problems.append('checks/ has unstaged changes, so the selftest cannot speak for what is '
+                        'being committed — stage them or revert them')
+        run_selftest = False
+if run_selftest:
+    r = subprocess.run(['node', 'checks/run.mjs', '--selftest'],
+                       cwd=ROOT, capture_output=True, text=True)
+    if r.returncode != 0:
+        failing = [l for l in r.stdout.splitlines() if l.startswith('FAIL')]
+        problems.append('the check suite fails its own selftest:\n    ' +
+                        '\n    '.join(failing or [r.stderr.strip()[:200]]))
 
 if problems:
     print('speclint (goal-driven):')
