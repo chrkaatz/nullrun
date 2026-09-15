@@ -110,6 +110,29 @@ The render hook was added two tasks before the loop ran, specifically so the bui
 choose its own exhibit. It was defeated by the build rendering from a field the hook cannot
 supply — not deliberately, but the effect is the same.
 
+### The deepest one: the bar certifies two different programs
+
+The artifact does not use the engine the checks test. All five contract functions — `newRun`,
+`legalActions`, `allOffers`, `apply`, `view` — are defined **twice**, once in `oracle.mjs` (332
+lines) and again inside `nullrun.html` (695 lines). The artifact says so itself, at line 106:
+*"A client-side copy of the same rules goal-driven/oracle.mjs implements."*
+
+Thirteen of the seventeen criteria read the first copy. Four read the screen the second copy
+draws. **Nothing reads both.** And the artifact does not expose its copy, so the two cannot be
+compared from outside even in principle — I tried, and there is no handle to compare against.
+
+This is not a mistake the build made in passing. The contract requires a headless oracle on one
+surface and a self-contained artifact issuing no network request on the other; a module script
+cannot be imported over `file://`, which `COST.md` records the previous arm discovering the hard
+way. So the build must either duplicate the rules or add a step that inlines one source into
+both — and the bar never says which, never requires the two to agree, and provides no way to
+check. The build chose duplication, disclosed it in a comment, and passed.
+
+The `disabled="null"` bug is one line and takes a minute to fix. This is the structure that made
+it invisible, and fixing the line does not touch it. Every future divergence between the rules
+the checks verify and the rules the player meets is equally invisible, and the arm's own §K'
+gate cannot see it: a mutant perturbs the oracle, and the artifact does not use the oracle.
+
 ### Against the pre-registered predictions
 
 | | prediction | outcome |
