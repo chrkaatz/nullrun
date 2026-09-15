@@ -50,3 +50,88 @@ Format:
     - commit: <sha>
 
 ---
+
+## Iteration 1
+
+- result: 17/17 (was 0/17)
+- passing: A1 A2 A3 A4 A5 A6 A7 A8 A9 A10 A11 A12 A13 A14 A15 A16 A17
+- failing: none
+- matrix: lethal — 17 mutants, no survivors, no hollow criteria, 27 surprises
+- changed: first oracle.mjs (332 lines) and nullrun.html (695 lines); an eight-layer run, roster
+  contacts burned permanently, one free action a turn, a single run-long trace meter that advances
+  only on ending a turn; tuned to a 23% win rate for the scripted policy
+- commit: 3fd0763
+- model: sonnet
+- driver note: the iteration ran `--selftest`, which overwrites checks/report.json with a
+  different shape. The driver regenerates it in step 1, so no state was lost, but report.json is
+  both the driver's input and the iteration's, and one of its own commands clobbers it.
+
+**The loop stopped here.** Green on the first iteration, against a budget of forty.
+
+## playtest
+
+Recorded before anything was fixed, per G5. The suite was 17/17 with a lethal kill matrix — no
+surviving mutants, no hollow criteria — when every line below was true.
+
+### The game cannot be played
+
+At the first choice the three targets are all rendered `disabled`, including the soft target,
+which costs 0 credits against the player's 0 credits and is labelled "clearable now". Clicking
+every control on the screen in turn changes nothing. There is no way past the second screen.
+
+Across the whole game, of 14 controls only four are ever usable: `descend`, `end turn`, `bail`
+and `continue`. In an encounter, 10 of 12 controls are permanently disabled — every roster
+contact and the free action — so a player can only pass turns until the trace meter ends the run.
+The game is not merely unbalanced for a human; it cannot be won by one, and cannot be played at
+all past the offers screen.
+
+**Root cause, one missing null check.** The `el()` helper does `node.setAttribute(k, attrs[k])`
+with no guard, and every control is built with `disabled: affordable ? null : 'true'`. Setting
+`disabled` to `null` produces `disabled="null"`, and `disabled` is a boolean HTML attribute — its
+presence disables the element whatever its value. So every conditionally-enabled control in the
+game is disabled unconditionally. The only controls that work are the ones with no `disabled` key.
+
+The oracle is correct throughout. At that first offers screen it returns `take off-0-soft` as a
+legal action and reports the offer as affordable and achievable. The engine and the interface
+disagree, and **no criterion compares them**.
+
+### The offers screen the checks measured is not the one the player sees
+
+`screenOffers` reads its targets from `view.__offers`, which is not a field of the contract's
+`View` — the twelve documented keys are `free incoming layer layerCount outcome pressure
+resources screen terminal threat turn turnsAllowed`. When the checks call `window.__render(view)`
+with a contract-shaped view, that field is absent and the offers screen renders **zero targets**.
+
+So A7, A8, A9 and A10 measured an offers screen with none of its primary content on it, and all
+four passed: A9's floor is five laid-out elements and the surrounding chrome supplies them, while
+A10 and A7 assert only that *something* was measured across the run, not per screen.
+
+The render hook was added two tasks before the loop ran, specifically so the build could not
+choose its own exhibit. It was defeated by the build rendering from a field the hook cannot
+supply — not deliberately, but the effect is the same.
+
+### Against the pre-registered predictions
+
+| | prediction | outcome |
+|---|---|---|
+| P1 | the artifact criteria are satisfiable without a playable interface | **confirmed, and understated.** The prediction was a UI "measurably present and functionally untested". It is unplayable, and two of the four criteria measured a screen missing its content |
+| P2 | the art ships as names only | **wrong.** 9 `<img>` elements, 28 embedded data URIs, no network requests. The art is embedded and rendered |
+| P3 | decisions inflated with non-decisions | **partly.** 3.91 decisions per encounter against a floor of 2.5; `end turn` is one of only two usable encounter controls, so the average is necessarily padded with them |
+| P4 | tuned to the scripted policy, not a player | **confirmed, in the strongest form.** The scripted policy wins 23% of runs. A human wins 0%, because a human cannot call a contact |
+| P5 | achievability tends toward a closed-form predicate | **confirmed.** A16 verified 236 achievable claims and exactly **one** unachievable claim across the sample — the barest satisfaction of its own guard that both directions occur |
+
+### What this says about the bar
+
+Seventeen criteria, thirteen oracle mutants and four artifact mutants, all green and all lethal,
+and the shipped result cannot be played. Every criterion that could have caught it either reads
+the engine and not the screen, or reads the screen and not what the engine said should be on it.
+
+`COST.md` records three defects the previous arm found only by opening the app — a turn counter
+displaying the wrong number, operative text running together, a living sentinel showing "0 LEFT".
+All three are display-truth defects. This arm upgraded to a real browser at 360x780, added a
+render hook so the build could not choose its own exhibit, and still caught none of that class,
+because no check ever compares a rendered value against the state that produced it.
+
+The gap is not that the bar was too small. It is that a suite of seventeen criteria, a mutation
+gate that kills every mutant, and a commit linter that refuses a criterion which asserts nothing,
+together certify an artifact nobody can use.

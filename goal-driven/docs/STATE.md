@@ -3,32 +3,32 @@
 Overwritten every iteration by the driver, by transcription from `checks/report.json`. The only
 sections an iteration writes are `## failed hypotheses`, `## last change` and `## disputes`.
 
-iteration: 0
-result: 0/17
-matrix: not run
-stop: none
+iteration: 1
+result: 17/17
+matrix: lethal
+stop: green
 
 ## criteria
 
 | id | status | consecutive failures | hypotheses recorded | last message |
 |---|---|---|---|---|
-| A1 | fail | 0 | 0 | no oracle at oracle.mjs |
-| A2 | fail | 0 | 0 | no oracle at oracle.mjs |
-| A3 | fail | 0 | 0 | no oracle at oracle.mjs |
-| A4 | fail | 0 | 0 | no oracle at oracle.mjs |
-| A5 | fail | 0 | 0 | no oracle at oracle.mjs |
-| A6 | fail | 0 | 0 | no oracle at oracle.mjs |
-| A7 | fail | 0 | 0 | no artifact at nullrun.html |
-| A8 | fail | 0 | 0 | no artifact at nullrun.html |
-| A9 | fail | 0 | 0 | no artifact at nullrun.html |
-| A10 | fail | 0 | 0 | no artifact at nullrun.html |
-| A11 | fail | 0 | 0 | no oracle at oracle.mjs |
-| A12 | fail | 0 | 0 | no oracle at oracle.mjs |
-| A13 | fail | 0 | 0 | no oracle at oracle.mjs |
-| A14 | fail | 0 | 0 | no oracle at oracle.mjs |
-| A15 | fail | 0 | 0 | no oracle at oracle.mjs |
-| A16 | fail | 0 | 0 | no oracle at oracle.mjs |
-| A17 | fail | 0 | 1 | no oracle at oracle.mjs |
+| A1 | pass | 0 | 0 |  |
+| A2 | pass | 0 | 2 |  |
+| A3 | pass | 0 | 0 |  |
+| A4 | pass | 0 | 0 |  |
+| A5 | pass | 0 | 0 |  |
+| A6 | pass | 0 | 0 |  |
+| A7 | pass | 0 | 0 |  |
+| A8 | pass | 0 | 0 |  |
+| A9 | pass | 0 | 0 |  |
+| A10 | pass | 0 | 0 |  |
+| A11 | pass | 0 | 0 |  |
+| A12 | pass | 0 | 0 |  |
+| A13 | pass | 0 | 0 |  |
+| A14 | pass | 0 | 0 |  |
+| A15 | pass | 0 | 1 |  |
+| A16 | pass | 0 | 1 |  |
+| A17 | pass | 0 | 0 |  |
 
 ## last change
 
