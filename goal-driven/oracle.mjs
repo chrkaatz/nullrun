@@ -15,12 +15,26 @@
 // by the artifact, never here). "power" is how much integrity a call from this contact removes
 // before armour mitigation.
 const CATALOG = [
-  ['archon', 7], ['ash', 4], ['bishop', 5], ['cardinal', 6], ['cold', 4],
-  ['dolorosa', 5], ['grief', 6], ['hatchet', 8], ['hunter', 7], ['mole', 3],
-  ['ninth', 9], ['prior', 5], ['saint', 6], ['sparrow', 4], ['sweep', 5],
-  ['tally', 4], ['velvet', 6], ['wall', 8], ['wren', 3]
+  ['archon', 7], ['ash', 3], ['bishop', 8], ['cardinal', 9], ['cold', 4],
+  ['dolorosa', 8], ['grief', 9], ['hatchet', 10], ['hunter', 7], ['mole', 3],
+  ['ninth', 11], ['prior', 6], ['saint', 8], ['sparrow', 3], ['sweep', 5],
+  ['tally', 3], ['velvet', 7], ['wall', 8], ['wren', 3]
 ].map(([id, power]) => ({ id, power }));
 const POWER = Object.fromEntries(CATALOG.map(c => [c.id, c.power]));
+
+// The art is nineteen images, and five of them are places, not people: a server hall, a wall, a
+// sweep, a hunter-killer, an archon. Only the filenames cross into this arm, so nothing in the
+// contract distinguishes a face from a machine — but a roster of people should not contain a
+// server room. Constructs are what you attack; contacts are who answers.
+const CONSTRUCT_IDS = ['archon', 'cold', 'hunter', 'sweep', 'wall'];
+const CONSTRUCTS = CATALOG.filter(c => CONSTRUCT_IDS.includes(c.id));
+const CONTACTS = CATALOG.filter(c => !CONSTRUCT_IDS.includes(c.id));
+
+// Which construct stands at a given layer and tier. Deterministic, so a seed replays exactly.
+function constructFor(seed, layer, tier) {
+  const t = ['soft', 'med', 'hard'].indexOf(tier);
+  return CONSTRUCTS[hash32(seed, layer, 91 + t) % CONSTRUCTS.length].id;
+}
 
 // ---------------------------------------------------------------------------------------------
 // Tunables. Reach/armour/cost/reward are flat across layers by design: depth pressure comes from
@@ -123,7 +137,7 @@ function computeOffers(state) {
   const turnsAllowed = turnsAllowedFor(state);
   return Object.entries(TIERS).map(([tier, t]) => ({
     id: `off-${state.layer}-${tier}`,
-    label: `${tier} target, layer ${state.layer + 1}`,
+    label: `${constructFor(state.seed, state.layer, tier).toUpperCase()} — ${tier}`,
     cost: t.cost,
     reach: t.reach,
     achievable: capacityDamage(state, t.armour, turnsAllowed) >= t.reach,
@@ -134,7 +148,7 @@ function computeOffers(state) {
 // ---------------------------------------------------------------------------------------------
 export function newRun(seed, options = {}) {
   const disabled = Array.isArray(options.disable) ? options.disable.slice() : [];
-  const roster = shuffledCatalog(seed).slice(0, START_ROSTER_SIZE);
+  const roster = shuffledCatalog(seed).filter(id => !CONSTRUCT_IDS.includes(id)).slice(0, START_ROSTER_SIZE);
   return {
     seed, layer: 0, layerCount: LAYER_COUNT, screen: 'loadout', turn: 0, outcome: null,
     disabled,
@@ -210,7 +224,7 @@ export function apply(state, action) {
     R.ram = R.ramMax;
     s.turn = 0;
     s.freeUsedThisTurn = false;
-    s.threat = { id: `threat-${s.layer}-${offer._tier}`, integrity: t.reach, armour: t.armour, tier: offer._tier };
+    s.threat = { id: constructFor(s.seed, s.layer, offer._tier), integrity: t.reach, armour: t.armour, tier: offer._tier };
     s.screen = 'encounter';
     return s;
   }
@@ -224,7 +238,7 @@ export function apply(state, action) {
     // to exhaust it reaches an 'offers' screen where nothing is achievable — A2's requirement
     // and A15's "free alone never clears the softest node" cannot both hold at that point.
     const taken = new Set([...R.roster, ...R.burned]);
-    const avail = CATALOG.filter(c => !taken.has(c.id));
+    const avail = CONTACTS.filter(c => !taken.has(c.id));
     if (avail.length > 0 && R.roster.length < R.rosterCap) {
       const idx = hash32(s.seed, s.layer, 7) % avail.length;
       R.roster = [...R.roster, avail[idx].id];
