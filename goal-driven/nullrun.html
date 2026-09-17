@@ -143,9 +143,22 @@ const CONSTRUCTS = CATALOG.filter(c => CONSTRUCT_IDS.includes(c.id));
 const CONTACTS = CATALOG.filter(c => !CONSTRUCT_IDS.includes(c.id));
 
 // Which construct stands at a given layer and tier. Deterministic, so a seed replays exactly.
+// The three tiers at a layer draw without replacement from the five constructs, so a layer never
+// reads as e.g. "HUNTER — soft" and "HUNTER — hard" against the same machine. A partial
+// Fisher-Yates over the five, seeded from (seed, layer) alone, gives a distinct construct per
+// tier and still replays exactly for a given seed.
+function constructsForLayer(seed, layer) {
+  const idx = [0, 1, 2, 3, 4];
+  for (let i = idx.length - 1; i > 0; i--) {
+    const j = hash32(seed, layer, 131, i) % (i + 1);
+    [idx[i], idx[j]] = [idx[j], idx[i]];
+  }
+  return idx.slice(0, 3).map(i => CONSTRUCTS[i].id);
+}
+
 function constructFor(seed, layer, tier) {
   const t = ['soft', 'med', 'hard'].indexOf(tier);
-  return CONSTRUCTS[hash32(seed, layer, 91 + t) % CONSTRUCTS.length].id;
+  return constructsForLayer(seed, layer)[t];
 }
 
 // ---------------------------------------------------------------------------------------------

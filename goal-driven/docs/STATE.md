@@ -3,7 +3,7 @@
 Overwritten every iteration by the driver, by transcription from `checks/report.json`. The only
 sections an iteration writes are `## failed hypotheses`, `## last change` and `## disputes`.
 
-iteration: 2
+iteration: 3
 result: 17/17
 matrix: lethal
 stop: green
@@ -31,6 +31,17 @@ stop: green
 | A17 | pass | 0 | 4 |  |
 
 ## last change
+
+A third human playtest found that a layer's three targets could name the same construct twice —
+`constructFor` drew each tier's construct independently from the five, so e.g. `HUNTER — soft` and
+`HUNTER — hard` at the same layer were a real, common occurrence: the same machine standing as two
+different difficulties reads as a bug even though nothing in the contract is violated by it (A2
+keys distinctness on offer `id`, already unique as `off-<layer>-<tier>`, so this was invisible to
+every check). Replaced the independent per-tier hash draw with a partial Fisher-Yates over the
+five constructs, seeded from `(seed, layer)` alone: the three tiers at a layer now draw without
+replacement, still replay exactly for a given seed, in both `oracle.mjs` and `nullrun.html`.
+Verified 0 collisions across 1600 (seed, layer) pairs. `node checks/run.mjs`: 17/17, unchanged.
+`node checks/matrix.mjs`: lethal, unchanged.
 
 A second human playtest, of this same build, found that the roster shows a portrait and a name
 and nothing else: no damage, no cost. Choosing between `tally` and `ninth` was guesswork, because
