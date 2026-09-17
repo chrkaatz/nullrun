@@ -228,12 +228,11 @@ Method: no specification and no reviewer inside the loop. Seventeen inherited cr
 as an executable suite, are the entire authority; an unattended loop writes the game and stops
 when every check passes and a mutant set proves the checks can fail.
 
-Measured 2026-09-17. **The build is mid-repair and this section will need revising.** It is
-recorded now rather than when it looks better, because the sequence is the result.
+Measured 2026-09-17, after the loop and four rounds of human-driven repair.
 
 | | |
 |---|---|
-| commits | 54 |
+| commits | 59 |
 | **the loop's entire input** | **2,341 words** — 307 product, 1,562 contract, 472 method |
 | check suite | 1,688 lines — 17 criteria, runner, 17 mutants, kill matrix |
 | fixtures | 237 lines — one hollow control, one abstract positive control |
@@ -241,8 +240,21 @@ recorded now rather than when it looks better, because the sequence is the resul
 | design + plan | 21,466 words |
 | decisions recorded while building the bar | 53 |
 | **iterations to green** | **1**, against a budget of 40 |
-| **build** | **1,042 lines** — 346 oracle + 696 artifact, *the rules written twice* |
-| artifact | 106 KB `nullrun.html`, plus a 14 KB `oracle.mjs` the artifact does not use |
+| **repairs after green, all human-initiated** | **4** |
+| **build** | **1,110 lines** — 359 oracle + 751 artifact, *the rules written twice* |
+| under test | 17 criteria · 17 mutants · 26 selftest verdicts |
+
+### The artifact, side by side
+
+| | ephemeral | traditional | goal-driven |
+|---|---|---|---|
+| artifact | 113 KB | 317 KB | 109 KB |
+| hand-written source | 600 lines, one file | 770 engine + 343 UI + 203 CSS | 359 oracle + 751 artifact |
+| the rules exist | once | once | **twice** |
+
+The size sits with `ephemeral` — same shape of thing, no framework, art embedded. The line count is
+not comparable to either, because 1,110 lines is not one game written once. It is the same game
+written twice, and nothing in the bar requires the two copies to agree.
 
 ### Where the effort actually went
 
@@ -266,43 +278,74 @@ one unrepaired criterion — *"no reachable failure mode, left nominal, 0 is the
 see."* It was inherited verbatim, re-implemented, and made **structurally** impossible rather than
 merely unreachable. The ledger named it in writing and the arm reproduced it anyway.
 
-### What it did not deliver
+### What the loop delivered, and what it did not
 
-**A playable game.** The loop reached 17/17 with a lethal kill matrix on its first iteration, and
-the result could not be played past the second screen. Every target rendered disabled, including
-one costing 0 credits against the player's 0 credits. Of fourteen controls in the whole game, four
-were ever usable; in an encounter, ten of twelve were permanently dead, so a human could only pass
-turns until the trace meter ended the run. The scripted policy won 23% of runs. A human won 0%.
+The loop reached 17/17 with a lethal kill matrix on its **first** iteration. The result could not
+be played past the second screen.
 
-The cause was one missing null check — `el()` handed `null` to `setAttribute`, producing
-`disabled="null"` on a boolean attribute. **17/17 with a lethal matrix before the fix. 17/17 with
-a lethal matrix after it. Not one criterion moved.**
+Every target rendered disabled, including one costing 0 credits against the player's 0 credits. Of
+fourteen controls in the whole game, four were ever usable; in an encounter, ten of twelve were
+dead, so a human could only pass turns until the trace meter ended the run. The scripted policy
+won 23% of runs. A human won 0%. The cause was one missing null check — `el()` handed `null` to
+`setAttribute`, producing `disabled="null"` on a boolean attribute.
 
-**A bar that tests the program you run.** All five contract functions are defined twice — once in
-`oracle.mjs`, again inside `nullrun.html`, which says so in a comment. Thirteen criteria read the
-first copy; four read the screen the second draws; nothing reads both, and the artifact does not
-expose its copy, so they cannot be compared from outside even in principle. This is not
-carelessness: the contract demands a headless oracle *and* a self-contained artifact issuing no
-network request, and a module cannot be imported over `file://`. The bar never said the two must
-agree and gave no way to check. Demonstrated live — a rules change made in one copy dropped the
-suite to 13/17 while the page in the browser was unaffected.
+**17/17 with a lethal matrix before the fix. 17/17 with a lethal matrix after it. Not one
+criterion moved.**
 
-**Content that makes sense.** The nineteen shared art tiles are not nineteen people: five are
-places. Only the filenames crossed into this arm, and A17 requires every name to be reached, so
-the build put all nineteen into its one bucket that uses names — and a roster of operatives
-contained a server room. No criterion can see this; the bar has no notion of what an image
-depicts. Both playtest defects in this arm were found by a human looking at the screen.
+### What a human found that seventeen criteria and a lethal mutation gate did not
 
-**An unattended result.** The loop ran once and stopped. Everything after — the playability fix,
-the content split, the retune it forced — was driven by a human playing the game and by hand
-repair. "Green in one iteration" is true and close to meaningless on its own.
+Four defects, all found by playing the game, none visible to any check:
+
+| | defect | why no criterion sees it |
+|---|---|---|
+| 1 | every control disabled; the game unplayable | thirteen criteria read the engine, four read the screen, none compares them |
+| 2 | server rooms in a roster of operatives | A17 requires all nineteen art names be reached and the bar has no notion of what an image depicts |
+| 3 | no contact states its damage, so play is guesswork | `resources.roster` is a list of bare id strings; the contract carries no power at all |
+| 4 | the same construct offered twice at one choice point | A2 keys distinctness on offer *id*, which was always distinct |
+
+Only the second required a balance change: removing five names from the contact pool cut total
+contact power from 105 to 74 against eight layers, every run lost, and the score fell to 13/17
+until the catalogue was retuned. The other three moved no criterion at all.
+
+Defect 3 is a gap in the contract, not in what the loop built. Every other actionable thing in the
+`View` declares its value — an `Offer` carries `cost`, `reach` and `achievable`, `threat` carries
+`integrity` and `armour`, `incoming` and `free` each carry a `value` — and the roster, the player's
+central decision every turn, carries none. `ephemeral` held this as NFR-3, *"intents state their
+value in text."* Only the seventeen criteria crossed into this arm, and none of them is NFR-3.
+
+### What the bar did force
+
+Worth recording against the rest. Getting A14 to genuinely bind, rather than merely land the win
+rate in range, required discovering that a run only ever loses at the "nothing achievable" gate and
+never mid-encounter — so disabling the pressure mechanic can only rescue a loss when the roster is
+down to one or two contacts, never exactly zero. The tuning target is *"the pool runs dry with a
+sliver left"*, not *"the pool runs dry"*, and that band is a few integer units wide. That is a
+criterion forcing a real design property rather than a number, and it is the strongest evidence
+here in the method's favour.
+
+The final build wins 40% of 200 seeds, 40% with the pressure mechanic against 65% without, 50 of
+200 outcomes flipping when it is removed.
+
+### The bar certifies two different programs
+
+All five contract functions are defined twice — once in `oracle.mjs`, again inside `nullrun.html`,
+which says so in a comment. Thirteen criteria read the first copy; four read the screen the second
+draws; nothing reads both, and the artifact does not expose its copy, so they cannot be compared
+from outside even in principle.
+
+This is not carelessness. The contract demands a headless oracle *and* a self-contained artifact
+issuing no network request, and a module cannot be imported over `file://` — which `COST.md`
+already records the previous arm discovering. The bar never said the two must agree and gave no way
+to check. Demonstrated live: a rules change made in one copy dropped the suite to 13/17 while the
+page in the browser was unaffected, still showing the old content.
 
 ### Against the other two arms
 
 `ephemeral` and `traditional` both shipped games that could be played, and both found defects by
-opening the app that their suites had missed. This arm shipped a game that could not be played at
-all, and its suite was green and mutation-lethal while that was true. On the measure that matters
-to a player, it is behind both — and it reached that state fastest.
+opening the app that their suites had missed — three of them, in `traditional`'s case, all
+display-truth defects. This arm shipped a game that could not be played at all, with a green,
+mutation-lethal suite while that was true, and then needed four human-initiated repairs to become
+playable and legible. It reached its first green fastest and its first playable state slowest.
 
 ### The handover caveat
 
@@ -314,7 +357,7 @@ position, not a finished bar.
 
 And the scaffolding was built by the *traditional* process: a design, a plan, task-by-task
 execution with review. Only the single loop iteration is goal-driven. **The method under test ran
-for one iteration and produced 1,042 lines; the apparatus built to judge it took ten tasks, 53
+for one iteration and produced 1,110 lines; the apparatus built to judge it took ten tasks, 53
 recorded decisions and 1,688 lines of checks.** Those two costs are not comparable and must not be
 added together.
 
