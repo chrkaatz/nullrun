@@ -9,6 +9,40 @@ dollar amount. Session spend comes from `/cost` in Claude Code; `rtk gain` and
 `rtk gain --history` report the proxy's token savings per command. What is recorded below is
 the part that can be counted from the repository itself.
 
+**On tokens.** Claude Code writes a transcript per session, and those transcripts carry per-message
+usage. Each arm was built in one session, so the three map cleanly onto the three arms by date.
+Measured 2026-09-17:
+
+| arm | session | dates | output | cache write | cache read | total |
+|---|---|---|---|---|---|---|
+| ephemeral | `fe23c29a` | Sep 5–10 | 1,090,604 | 7,072,322 | 274,401,664 | 282.6M |
+| traditional | `dbc9043d` | Sep 10–11 | 657,496 | 3,483,661 | 235,242,954 | 239.4M |
+| goal-driven | `3d5fdda7` | Sep 11–17 | 1,296,145 | 9,390,033 | 441,673,939 | 452.4M |
+
+**Do not read that table as cost, and do not rank the arms by it.** Three things break it:
+
+- **Subagent work is not counted at all.** The transcripts contain zero sidechain records, so every
+  dispatched agent's usage is missing. The arms delegated very differently — `ephemeral` dispatched
+  **0** subagents, `traditional` **18**, `goal-driven` **30** — so the undercount is not uniform. It
+  is smallest for the arm that looks most expensive and largest for the arm that looks cheapest in
+  per-token terms. The true ordering is unknown, and `goal-driven` is understated the most.
+- **Cache reads are 97% of every total**, and they are billed at a fraction of fresh input. What
+  that column mostly measures is conversation length multiplied by turns — not work done. Input
+  proper is tiny in all three (1,474 / 1,260 / 1,922 tokens) because almost everything is cached.
+- **A session is not exactly an arm.** The `goal-driven` session also produced this ledger's
+  entries for all three arms and the whole-branch reviews, and it ran across six days.
+
+The one column that approximates work produced is **output**: 1.09M, 0.66M, 1.30M. Even that
+excludes every subagent, so `traditional` and `goal-driven` are both missing the bulk of their
+implementation writing.
+
+For this repository specifically, `rtk gain --project` reports 1,089 proxied commands, 407.2K input
+and 325.2K output tokens through the proxy, with 82.7K saved (20.3%). That is the proxy's own
+accounting of what it filtered, not a session total.
+
+The authoritative per-session figure is `/cost` in Claude Code, which only the person running it
+can see.
+
 ---
 
 ## ephemeral — spec-driven, code disposable
