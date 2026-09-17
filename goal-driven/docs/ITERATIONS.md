@@ -158,3 +158,29 @@ because no check ever compares a rendered value against the state that produced 
 The gap is not that the bar was too small. It is that a suite of seventeen criteria, a mutation
 gate that kills every mutant, and a commit linter that refuses a criterion which asserts nothing,
 together certify an artifact nobody can use.
+
+### The repair
+
+One line, after the record was closed. `el()` now skips `null` and `undefined` attribute values
+instead of passing them to `setAttribute`, so `disabled: null` no longer renders `disabled="null"`.
+
+Verified by playing a full run in a browser at 360x780: 35 interactions, descend through six
+layers of targets, contacts, free actions and payouts, ending TRACED at layer 7. No page errors.
+At the first choice the soft target (0 credits, cost 0) is now enabled and the med and hard
+targets (15 and 25 credits) are correctly disabled.
+
+The bar was 17/17 with a lethal matrix **before** the fix and 17/17 with a lethal matrix after it.
+Not one criterion moved. That is the finding, not the fix: the suite could not tell the difference
+between a game that plays and a game where every contact, every free action and every target is
+permanently unclickable.
+
+Two things were recorded and deliberately not repaired, because they are properties of the bar
+rather than of this build:
+
+- the offers screen still draws from `view.__offers`, so the screen the four artifact criteria
+  render remains empty of targets
+- the artifact still carries its own copy of the rules, and nothing compares it to the oracle
+
+A third, minor, noted but not repaired: the end screen offers no control, so a finished run needs
+a page reload to play again. The contract permits it — `legalActions` is empty at a terminal
+state, and A6 only requires an action when the run is not over.
