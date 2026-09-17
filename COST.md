@@ -68,6 +68,22 @@ Measured 2026-09-10, at `spec/0.9.5`.
 | linter | 111 lines |
 | under test | 19 FR · 8 NFR · 8 invariants · 19 checks · 12 open questions |
 
+### What it cost in tokens
+
+Session `fe23c29a`, 2026-09-05 to 09-10. No subagents: every token here was spent in the
+conversation itself.
+
+| | |
+|---|---|
+| output | 1,090,604 |
+| cache write | 7,072,322 |
+| cache read | 274,401,664 |
+| fresh input | 1,474 |
+| **all tokens** | **282.6M**, all `opus-5` |
+
+The lowest total of the three arms, and the only one where the figure is complete on its own —
+nothing was delegated, so nothing is hidden in a second transcript.
+
 ### Where the effort actually went
 
 The code is the smallest artifact. 595 lines of build against roughly 12,000 words of spec,
@@ -117,6 +133,25 @@ Measured 2026-09-11, at `main`.
 | shared art | 80 KB generated (19 tiles, base64) — not authored here |
 | **build** | **324 KB `dist/`**; `pnpm bundle` folds it to a **317 KB single file** |
 | under test | 17 criteria · 93 tests · 10 tasks · 41 recorded rulings |
+
+### What it cost in tokens
+
+Session `dbc9043d`, 2026-09-10 to 09-11, plus 18 subagent transcripts — a fresh implementer and a
+fresh reviewer per task.
+
+| | main thread | subagents | total |
+|---|---|---|---|
+| output | 657,496 | 314,835 | **972,331** |
+| cache write | 3,483,661 | 7,059,372 | 10,543,033 |
+| cache read | 235,242,954 | 59,741,133 | 294,984,087 |
+| all tokens | 239.4M | 67.1M | **306.5M** |
+
+By model: 268.8M `opus-5`, 37.1M `sonnet-5`, 0.7M `haiku-4-5`. **Roughly a fifth of this arm lives
+in its subagents**, and a third of everything it wrote was written by one — which is what
+task-by-task execution with a fresh reviewer each time costs.
+
+The lowest *output* of the three despite delivering the largest codebase, because the plan carried
+the engine verbatim and three tasks were pure transcription.
 
 ### Where the effort actually went
 
@@ -294,6 +329,25 @@ Measured 2026-09-17, after the loop and four rounds of human-driven repair.
 The size sits with `ephemeral` — same shape of thing, no framework, art embedded. The line count is
 not comparable to either, because 1,110 lines is not one game written once. It is the same game
 written twice, and nothing in the bar requires the two copies to agree.
+
+### What it cost in tokens
+
+Session `3d5fdda7`, 2026-09-11 to 09-17, plus 30 subagent transcripts.
+
+| | main thread | subagents | total |
+|---|---|---|---|
+| output | 1,329,973 | 1,127,457 | **2,457,430** |
+| cache write | 11,747,994 | 10,397,608 | 22,145,602 |
+| cache read | 464,141,036 | 363,462,758 | 827,603,794 |
+| all tokens | 477.2M | 375.0M | **852.2M** |
+
+By model: 480.2M `opus-5`, 372.0M `sonnet-5`.
+
+**About 2.8× either of the other arms.** The subagents alone exceed the whole of `ephemeral`, and
+nearly half of everything this arm produced was written by an agent other than the one holding the
+conversation. Against that, "green in one iteration of forty" describes only the cheapest part of
+the work — the scaffolding around it took ten tasks, fifty-three recorded decisions and 1,688 lines
+of checks, and the repairs after it took four more rounds.
 
 ### Where the effort actually went
 
