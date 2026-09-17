@@ -32,6 +32,25 @@ stop: green
 
 ## last change
 
+A second human playtest, of this same build, found that the roster shows a portrait and a name
+and nothing else: no damage, no cost. Choosing between `tally` and `ninth` was guesswork, because
+the `View` contract gives a check (and a player) no way to know — `resources.roster` is bare id
+strings, and every other actionable thing in the contract (`Offer`, `threat`, `incoming`, `free`)
+declares its own value. That gap is in the contract, not fixable from inside it, so it is recorded
+rather than patched: `oracle.mjs`/`docs/ORACLE.md` are unchanged. `nullrun.html` renders from its
+own (already-local) `POWER` table instead, now exposed off `NullrunOracle` alongside the five
+contract functions for the renderer to read. Each roster card states its contact's damage —
+mitigated against the current threat's armour, with the raw figure alongside, once one is in view
+— and the ram cost of calling it. Fitting that on a 58px card without truncating (`scrollWidth >
+clientWidth`, caught by direct measurement, not by eye) meant dropping the "dmg"/"ram" unit words
+from every card and saying them once in the panel heading instead (`roster — call one (dmg · ram
+cost)`) — same information, stated at the panel rather than repeated nine times. The same
+card-height budget that made the earlier threat-portrait fix exact (see below) had no slack left
+for a second text line, so the design keeps every card to a portrait plus two short lines, encounter
+included. Confirmed this changed no criterion's result: `node checks/run.mjs` was 17/17 before and
+after, `node checks/matrix.mjs` lethal before and after — a human looking at the screen is still
+the only thing that catches what these seventeen checks cannot see a roster card at all.
+
 A human playtest found that five of the nineteen shared art tiles (`archon`, `cold`, `hunter`,
 `sweep`, `wall`) are places, not people — a server hall, a wall, a sweep, a hunter-killer, an
 archon — and the roster, the only place in the build that used names, had been drawing from all

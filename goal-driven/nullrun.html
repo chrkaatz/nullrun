@@ -69,8 +69,8 @@
   button .btn-meta.reached::before { content: "\2713 reachable \2014 "; color: var(--cyan); }
   .roster-grid { display: flex; flex-wrap: wrap; gap: 6px; }
   .contact {
-    display: flex; flex-direction: column; align-items: center; gap: 3px;
-    width: 56px; font-size: 9px; color: var(--ink-dim); text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+    width: 58px; font-size: 9px; color: var(--ink-dim); text-align: center;
   }
   .contact img, .contact .portrait-fallback {
     width: 44px; height: 44px; border-radius: 4px; border: 1px solid var(--line);
@@ -79,9 +79,10 @@
   }
   .contact.burned img, .contact.burned .portrait-fallback { filter: grayscale(1) brightness(0.5); border-style: dashed; }
   .contact.burned::after { content: "spent"; }
+  .contact .stat { font-size: 8px; line-height: 1.15; }
   .contact button {
-    height: 56px; min-width: 44px; width: 56px; padding: 2px; align-items: center; text-align: center;
-    font-size: 9px;
+    height: 62px; min-width: 44px; width: 58px; padding: 1px 2px; align-items: center; text-align: center;
+    font-size: 9px; gap: 1px;
   }
   .grain::before {
     content: ""; position: fixed; inset: 0; pointer-events: none; opacity: 0.03;
@@ -456,7 +457,10 @@ function view(state) {
   };
 }
 
-  return { newRun, legalActions, allOffers, apply, view };
+  // POWER and CALL_COST are exposed alongside the five contract functions so the renderer below
+  // can show what a call actually does — the View only ever carries roster ids, never their
+  // power, so a player choosing between two names has nothing to go on otherwise.
+  return { newRun, legalActions, allOffers, apply, view, POWER, CALL_COST };
 })();
 
 /* ================================================================================
@@ -523,7 +527,20 @@ function resourceBar(view) {
   ]);
 }
 
-function rosterGrid(view, onCall) {
+// What a call from `id` is worth right now, in text. Against an armoured target the raw power
+// isn't the number the decision turns on — the mitigated figure is — so once a threat's armour
+// is known, that's what gets shown; the raw number stays visible for context.
+function damageText(id, armour) {
+  const power = NullrunOracle.POWER[id];
+  // No unit words: this has to fit on a 58px card without truncating, which "X dmg vs armour Y"
+  // does not, so the "dmg"/"ram" labels are said once, in the panel headings, and the numbers on
+  // the card are left to read against them. The raw power stays visible next to the mitigated
+  // figure when armoured, so "why is this contact worth less here" is still answerable on sight.
+  if (armour) return `${Math.max(1, power - armour)}/${power}`;
+  return `${power}`;
+}
+
+function rosterGrid(view, onCall, armour) {
   const r = view.resources;
   const grid = el('div', { class: 'roster-grid' });
   for (const id of r.roster) {
@@ -533,12 +550,17 @@ function rosterGrid(view, onCall) {
       const btn = el('button', {
         disabled: canCall ? null : 'true',
         onclick: () => onCall(id)
-      }, [portrait(id, 44), el('span', { class: 'btn-title', text: id })]);
+      }, [
+        portrait(id, 32),
+        el('span', { class: 'btn-title', text: id }),
+        el('span', { class: 'btn-meta stat', text: `${damageText(id, armour)} · ${NullrunOracle.CALL_COST}r` })
+      ]);
       if (!canCall) btn.setAttribute('disabled', 'true');
       wrap.appendChild(btn);
     } else {
-      wrap.appendChild(portrait(id, 44));
+      wrap.appendChild(portrait(id, 32));
       wrap.appendChild(el('span', { text: id }));
+      wrap.appendChild(el('span', { class: 'stat', text: damageText(id, armour) }));
     }
     grid.appendChild(wrap);
   }
@@ -556,7 +578,7 @@ function screenLoadout(view, act) {
     el('h1', { text: 'NULLRUN' }),
     el('p', { text: 'A team is called. The arcology waits below. Every name here answers once.' }),
     el('div', { class: 'panel' }, [
-      el('h2', { text: 'roster' }),
+      el('h2', { text: 'roster (dmg)' }),
       rosterGrid(view, null)
     ]),
     el('button', { class: 'primary', onclick: () => act({ type: 'onward' }) }, [
@@ -590,7 +612,7 @@ function screenOffers(view, act) {
       list
     ]),
     el('div', { class: 'panel' }, [
-      el('h2', { text: 'roster' }),
+      el('h2', { text: 'roster (dmg)' }),
       rosterGrid(view, null)
     ])
   ]);
@@ -622,8 +644,8 @@ function screenEncounter(view, act) {
       ])
     ]),
     el('div', { class: 'panel' }, [
-      el('h2', { text: 'roster — call one' }),
-      rosterGrid(view, (id) => act({ type: 'call', id }))
+      el('h2', { text: 'roster — call one (dmg · ram cost)' }),
+      rosterGrid(view, (id) => act({ type: 'call', id }), t ? t.armour : 0)
     ]),
     el('div', { class: 'col' }, [
       el('button', {
@@ -648,7 +670,7 @@ function screenPayout(view, act) {
     el('h1', { text: 'target cleared' }),
     resourceBar(view),
     el('div', { class: 'panel' }, [
-      el('h2', { text: 'roster' }),
+      el('h2', { text: 'roster (dmg)' }),
       rosterGrid(view, null)
     ]),
     el('button', { class: 'primary', onclick: () => act({ type: 'onward' }) }, [
