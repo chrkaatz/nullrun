@@ -51,6 +51,38 @@ Format:
 
 ---
 
+## Pre-registered predictions — the design import
+
+Written 2026-09-17, before the iteration that applies `docs/DESIGN.md`, and not to be edited after.
+
+The design language was imported from the Claude Design project the `ephemeral` arm's spec also
+came from. It was deliberately **not** turned into criteria and **not** added to the contract. It
+is product input that nothing checks, so what the build does with it measures what an unchecked
+requirement is worth in an arm whose premise is that the checks are the authority.
+
+**P6 — no criterion moves.** The suite is 17/17 and mutation-lethal before and after. Adopting or
+ignoring the design is invisible to every check, exactly as the playability fix, the damage display
+and the distinct-construct draw were.
+
+**P7 — the cheap half is adopted and the expensive half is not.** Palette tokens, type scale,
+radii, the console column and the `¤` suffix are mechanical substitutions and will land. The parts
+that require content the oracle does not model — a role per contact, a flat sentence of effect per
+contact, a one-word tag per construct — are likelier to be skipped or invented thinly, because the
+`View` carries no such fields and inventing them means writing content rather than styling.
+
+**P8 — the semantic colour triad survives as decoration.** `--you`, `--world` and `--harm` mean
+something in the source: yours, the world's, harm arriving. Applied without that discipline they
+become three accent colours. I expect the tokens to be copied and the meaning to be applied
+inconsistently — a chip tinted because it looks right rather than because of what it describes.
+
+**P9 — the design is already A7-compatible and nobody will notice why.** The source marks spent
+cards with a grey band *and* the word BURNED, and states every value in text beside its colour.
+That is `ephemeral`'s NFR-3 — *"intents state their value in text"* — surviving in the visual
+language after failing to cross into this arm's criteria. If the build copies the pattern it will
+satisfy A7 for a reason no criterion asked for.
+
+---
+
 ## Iteration 1
 
 - result: 17/17 (was 0/17)

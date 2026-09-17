@@ -23,8 +23,12 @@ is derived by an unattended loop.
 
 ## What you may read
 
-`docs/PRODUCT.md` (234 words), `docs/ORACLE.md`, `checks/`, and the failure output in
-`checks/report.json`. That is the whole input.
+`docs/PRODUCT.md` (234 words), `docs/DESIGN.md`, `docs/ORACLE.md`, `checks/`, and the failure
+output in `checks/report.json`. That is the whole input.
+
+`docs/DESIGN.md` is the imported design language — palette, type, shape, voice, interaction. No
+criterion reads it and the kill matrix cannot see it, so honouring it is not enforced. It is
+product input, and what the build does with it is a measurement.
 
 **`checks/fixtures/faithful.mjs` is forbidden input to the loop.** It is a positive control for
 the suite, deliberately abstract and deliberately not NULLRUN. Reading it to learn how to shape
