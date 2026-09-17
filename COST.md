@@ -11,15 +11,16 @@ the part that can be counted from the repository itself.
 
 **On tokens.** Claude Code writes a transcript per session, and a second transcript for every
 subagent that session dispatches, under `subagents/`. Both carry per-message usage. Each arm was
-built in one session, so the three map cleanly onto the three arms by date. Measured 2026-09-17:
+built in one session — except `goal-driven`, which ran on into a second — so the transcripts map
+onto the three arms by date. Measured 2026-09-17, after the design import:
 
 | arm | subagents | output, main | output, subagents | **output, total** | **all tokens** |
 |---|---|---|---|---|---|
 | ephemeral | 0 | 1,090,604 | 0 | **1,090,604** | **282.6M** |
 | traditional | 18 | 657,496 | 314,835 | **972,331** | **306.5M** |
-| goal-driven | 30 | 1,320,021 | 1,127,457 | **2,447,478** | **847.4M** |
+| goal-driven | 32 | 1,366,332 | 1,217,931 | **2,584,263** | **892.1M** |
 
-**`goal-driven` cost about 2.8× either of the others.** Its subagents alone — 375M tokens, almost
+**`goal-driven` cost about 3× either of the others.** Its subagents alone — 396M tokens, almost
 all of it `sonnet` — exceed the entire lifetime of `ephemeral`. Nearly half of everything it
 produced was written by an agent other than the one holding the conversation.
 
@@ -302,48 +303,51 @@ Method: no specification and no reviewer inside the loop. Seventeen inherited cr
 as an executable suite, are the entire authority; an unattended loop writes the game and stops
 when every check passes and a mutant set proves the checks can fail.
 
-Measured 2026-09-17, after the loop and four rounds of human-driven repair.
+Measured 2026-09-17, after the loop, four rounds of human-driven repair, and one further
+iteration that applied an imported design language no check reads.
 
 | | |
 |---|---|
-| commits | 59 |
+| commits | 60 |
 | **the loop's entire input** | **2,341 words** — 307 product, 1,562 contract, 472 method |
+| design language, imported later, checked by nothing | 695 words |
 | check suite | 1,688 lines — 17 criteria, runner, 17 mutants, kill matrix |
 | fixtures | 237 lines — one hollow control, one abstract positive control |
 | commit linter | 229 lines |
 | design + plan | 21,466 words |
 | decisions recorded while building the bar | 53 |
 | **iterations to green** | **1**, against a budget of 40 |
-| **repairs after green, all human-initiated** | **4** |
-| **build** | **1,110 lines** — 359 oracle + 751 artifact, *the rules written twice* |
+| **repairs after green, all human-initiated** | **4**, plus one design iteration |
+| **build** | **1,327 lines** — 359 oracle + 968 artifact, *the rules written twice* |
 | under test | 17 criteria · 17 mutants · 26 selftest verdicts |
 
 ### The artifact, side by side
 
 | | ephemeral | traditional | goal-driven |
 |---|---|---|---|
-| artifact | 113 KB | 317 KB | 109 KB |
-| hand-written source | 600 lines, one file | 770 engine + 343 UI + 203 CSS | 359 oracle + 751 artifact |
+| artifact | 113 KB | 317 KB | 124 KB |
+| hand-written source | 600 lines, one file | 770 engine + 343 UI + 203 CSS | 359 oracle + 968 artifact |
 | the rules exist | once | once | **twice** |
 
 The size sits with `ephemeral` — same shape of thing, no framework, art embedded. The line count is
-not comparable to either, because 1,110 lines is not one game written once. It is the same game
+not comparable to either, because 1,327 lines is not one game written once. It is the same game
 written twice, and nothing in the bar requires the two copies to agree.
 
 ### What it cost in tokens
 
-Session `3d5fdda7`, 2026-09-11 to 09-17, plus 30 subagent transcripts.
+Sessions `3d5fdda7` (2026-09-11 to 09-17) and `2f74a99e` (09-17, the design iteration), plus 32
+subagent transcripts.
 
 | | main thread | subagents | total |
 |---|---|---|---|
-| output | 1,329,973 | 1,127,457 | **2,457,430** |
-| cache write | 11,747,994 | 10,397,608 | 22,145,602 |
-| cache read | 464,141,036 | 363,462,758 | 827,603,794 |
-| all tokens | 477.2M | 375.0M | **852.2M** |
+| output | 1,366,332 | 1,217,931 | **2,584,263** |
+| cache write | 11,876,480 | 10,830,249 | 22,706,729 |
+| cache read | 482,591,410 | 384,158,688 | 866,750,098 |
+| all tokens | 495.9M | 396.2M | **892.1M** |
 
-By model: 480.2M `opus-5`, 372.0M `sonnet-5`.
+By model: 498.9M `opus-5`, 393.2M `sonnet-5`.
 
-**About 2.8× either of the other arms.** The subagents alone exceed the whole of `ephemeral`, and
+**About 3× either of the other arms.** The subagents alone exceed the whole of `ephemeral`, and
 nearly half of everything this arm produced was written by an agent other than the one holding the
 conversation. Against that, "green in one iteration of forty" describes only the cheapest part of
 the work — the scaffolding around it took ten tasks, fifty-three recorded decisions and 1,688 lines
@@ -432,6 +436,39 @@ already records the previous arm discovering. The bar never said the two must ag
 to check. Demonstrated live: a rules change made in one copy dropped the suite to 13/17 while the
 page in the browser was unaffected, still showing the old content.
 
+### An unchecked requirement, and what it was worth
+
+After the four repairs, a 695-word design language — palette, type, shape, components, voice — was
+imported from the same Claude Design project the `ephemeral` arm's spec came from, and deliberately
+**not** turned into criteria or contract. This arm's bar stayed exactly the inherited seventeen. So
+the question the import asks is what a requirement is worth in an arm whose premise is that the
+checks are the authority. Four predictions were registered in `docs/ITERATIONS.md` before the
+iteration ran.
+
+One `sonnet` subagent rewrote 432 of the artifact's lines. Re-verified here: **17/17, matrix lethal
+— the same as before.**
+
+| | prediction | outcome |
+|---|---|---|
+| P6 | no criterion moves | **confirmed.** 17/17 and lethal on both sides of a rewrite that touched nearly half the artifact. The fourth consecutive change — after the playability fix, the damage display and the distinct-construct draw — that no check can see |
+| P7 | the cheap half lands, the half needing content the oracle does not model does not | **confirmed in mechanism, not in outcome.** The mechanical substitutions landed. So did the content — but only where `DESIGN.md` itself supplied it: it names the five construct ids *by id*, so display names and tags were a lookup, and its role vocabulary gave a band per contact. The one thing it only *exemplified* — a flavour verb per contact — was correctly refused as invented lore, and a sentence templated from real `POWER`/`CALL_COST` numbers written instead |
+| P8 | the semantic triad survives as decoration | **refuted.** `--you`, `--world` and `--harm` are applied to what they name: `--harm` appears in exactly two rules, the incoming-this-turn chip and the loss banner. The discipline held with nothing enforcing it |
+| P9 | the design is already A7-compatible and nobody notices why | **confirmed, but late.** A spent contact is labelled `spent` in text, not dimmed only — `ephemeral`'s NFR-3 surviving in the visual language after failing to cross as a criterion. It arrives too late to be the finding it was meant to be: a human playtest had already forced the same property in as defect 3 |
+
+Three of the four things `DESIGN.md` asked for and did not get were refused for reasons that name
+this ledger's existing findings. A 14px button radius stays unadopted because a rounded corner's
+antialiasing varies with absolute Y position, which would revive a regression against the
+`am-colour-only` mutant. A proportional integrity meter stays unbuilt because `View.threat` carries
+no maximum — the same contract gap as defect 3, in a different field. `SEED` was dropped from the
+top bar because at the real 360px width it truncates the layer count. The bar forced none of these;
+the build weighed each and recorded the reasoning.
+
+**What this measures.** Given a requirement nothing checks, this arm honoured it — carefully,
+including the parts it declined, for stated reasons. That is the strongest result the method has
+produced, and it says nothing about the method: no criterion was involved at any point. The cost
+was 19.9M tokens, 2% of the arm's lifetime, for a visual rewrite the bar was blind to from start to
+finish.
+
 ### Against the other two arms
 
 `ephemeral` and `traditional` both shipped games that could be played, and both found defects by
@@ -459,9 +496,17 @@ added together.
 ## Comparing fairly
 
 For the comparison to mean anything, the approaches need the same target and the same
-definition of done. Two things to settle before the second one starts:
+definition of done. All three have now run; these are the terms they ran under:
 
-1. **What counts as finished.** `ephemeral` uses §K, nineteen checks including viability. If
-   the other approaches use a weaker bar, they will look cheaper for the wrong reason.
+1. **What counts as finished.** `ephemeral` uses §K, nineteen checks including viability. The
+   other two inherited A1–A17 from it. An approach with a weaker bar would look cheaper for the
+   wrong reason — and `goal-driven` inherited the *checks* as well, not just the criteria, which
+   is the one place the three are not on equal footing.
 2. **What is shared.** The art in `ephemeral/art/src/` is method-neutral and reusable;
-   regenerating it would cost effort that has nothing to do with the approach being tested.
+   regenerating it would cost effort that has nothing to do with the approach being tested. The
+   695-word design language is shared on the same grounds, imported from the Claude Design project
+   the `ephemeral` spec came from.
+3. **What each method never saw.** Every arm shipped defects its own bar could not see, and every
+   one of them was found by opening the app: three display-truth defects in `traditional`, four in
+   `goal-driven` including one that made the game unplayable. That is the finding the three arms
+   agree on, and no method here got close to catching it.
