@@ -159,6 +159,36 @@ The gap is not that the bar was too small. It is that a suite of seventeen crite
 gate that kills every mutant, and a commit linter that refuses a criterion which asserts nothing,
 together certify an artifact nobody can use.
 
+### Third human finding: the player cannot see what anything does
+
+Reported by the human playtester: *"I don't know what each character is doing (damage etc), which
+limits my strategic playing capabilities."*
+
+The roster renders a portrait and a name. Nothing else. A player choosing between `tally` and
+`ninth` has no basis for the choice, so calling contacts is guesswork rather than strategy — and
+calling contacts is the game's central decision.
+
+It is not a rendering oversight. **The contract does not carry the information.**
+`resources.roster` is a list of bare id strings; the oracle knows `POWER[id]` and uses it to
+compute damage, and never exposes it. Every other actionable thing in the `View` declares its
+value — an `Offer` carries `cost`, `reach` and `achievable`, `threat` carries `integrity` and
+`armour`, `incoming` carries a `value`, `free` carries a `value`. The roster, the player's main
+decision every turn, carries none.
+
+No criterion asks for it. A16 covers whether an *offer* is achievable. A4 covers incoming harm.
+A15 covers the free action's value. Nothing anywhere says a player can see what an action does
+before taking it. `ephemeral`'s spec carried exactly that requirement as NFR-3 — *"intents state
+their value in text"* — and it did not cross into this arm, because only the seventeen criteria
+did, and none of them is NFR-3.
+
+This is a defect in the contract I wrote, not in what the loop built. The loop rendered what the
+`View` gave it.
+
+The artifact carries its own `POWER` table, so it can be repaired without touching the contract —
+and the repair changes no criterion's result, which is the whole point. Three defects in this
+build have now been found by a human looking at the screen, and all seventeen checks plus a
+lethal mutation gate were blind to every one of them.
+
 ### The repair
 
 One line, after the record was closed. `el()` now skips `null` and `undefined` attribute values
