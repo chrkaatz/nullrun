@@ -32,6 +32,76 @@ stop: green
 
 ## last change
 
+Adopted docs/DESIGN.md's look and voice in `nullrun.html`. No criterion reads that document and
+none of this touches `oracle.mjs`, `CATALOG`, `TIERS`, `LAYER_COUNT`, `START_ROSTER_SIZE`, the
+trace ceiling or the free action's value — `node checks/run.mjs`: 17/17 before and after,
+`node checks/matrix.mjs`: lethal before and after (the button-radius constraint below was the one
+change with any real risk to the matrix, and it was re-verified after).
+
+**Adopted, mechanically:** the three semantic tokens, applied strictly to what they name and
+nothing else — `--you` (roster/ram/credits card bands, chips and lrows, the free action) never
+touches `--world` (the trace meter, the threat's `integrity` chip, a construct's tag) or `--harm`
+(the `incoming`-this-turn chip, the only place it appears). System sans for prose and titles, mono
+reserved for kickers, chips, lrows, meter labels, the feed line and the keys line, replacing the
+previous iteration's all-monospace page. The bordered 430px column with a persistent top bar
+(`ZAIBATSU CONSOLE` left, `LAYER n OF m` right — see below), 13px screen gaps, `20px 18px 24px`
+screen padding, and the radius steps (panels 16px, portraits 14px, non-button cards 12px,
+chips/meters 99px). New components: `chip`, `lrow` (the resource panel is now colour-railed rows,
+not bare stat lines), `node` (offer buttons), a real `card` (role band, portrait, name, effect
+sentence — replacing the bare portrait-and-two-stats tile), `dash` (one, on loadout, stating
+PRODUCT.md's own pillar-1 line), and a `keys` line. Screen-change rise animation (`8px`/`.28s`),
+switched off under `prefers-reduced-motion`; nothing else moves except the trace meter, which now
+only pulses past 85% of its ceiling. Voice: all six of DESIGN.md's own example lines are in use,
+one per screen/outcome ("Who are you taking in?" loadout, "Choose your way down." offers, "Someone
+has to go." encounter, "Node is yours." payout, "The arcology goes quiet." win, "You got out with
+less than you brought." loss) — none invented, all lifted verbatim because the fit was exact.
+Below 380px the roster grid drops from three cards to two, per DESIGN.md's own breakpoint; at the
+real 360px test width this is always in effect, and the extra per-card width is what made room for
+a role band and an effect sentence that the previous iteration's three-per-row, 58px card had no
+space for (see "A second human playtest" below) — adopting the breakpoint solved a problem the
+prior iteration recorded as unsolved, for free.
+
+**Content added, and where:** a fixed id -> role lookup (`ROLE` in `nullrun.html`, one of
+DESIGN.md's twelve role names per contact, two repeated since there are fourteen contacts) and a
+templated flat sentence of effect (`${ROLE}. ${dealt}/${raw} dmg, ${CALL_COST} RAM.`) — this is
+new copy, cosmetic only, read by no check. It is *not* the per-contact flavour verb DESIGN.md's own
+card example shows ("Drone strike. 8 damage, ignores armour."): nothing in PRODUCT.md or
+ORACLE.md gives a contact an identity beyond its id, so a unique verb-phrase per contact would be
+invented lore rather than derived content, and that line was not written. `CONSTRUCT_DISPLAY` (a
+display name and one-word tag for each of the five construct ids) is a different case: DESIGN.md
+names `wall`/`sweep`/`cold`/`hunter`/`archon` *by those exact ids* as ICE WALL/COMBAT, CORPSEC
+SWEEP/HARD, COLD STORAGE/QUIET, HUNTER/HARD, ARCHON/CORE — this is a lookup over an id the View
+already carries, not new invention, and it was adopted directly. "ZAIBATSU CONSOLE" (the top bar's
+left-hand identity) is DESIGN.md's own literal example text for that exact position, adopted
+verbatim.
+
+**Not adopted, and why — the actual point of this iteration:**
+- **Button/art radius on interactive controls.** DESIGN.md calls for 14px on "buttons and art."
+  Every `<button>` (including a roster card acting as the call action) stays square. This is the
+  one place design and a prior technical finding in this same file collide: `checks/matrix.mjs`'s
+  `am-colour-only` mutant forces two same-size buttons to differ only by saturation, and this
+  arm's second iteration found that a rounded corner's antialiasing depends on the element's
+  absolute Y position, so two genuinely identical buttons at different Y offsets never hashed
+  identically — fixed then by removing button radius entirely (see the matrix paragraph below).
+  Reintroducing it would risk exactly that regression, so it stays not adopted for buttons; art
+  (`<img>` portraits, never a button) and non-interactive cards do take the 14px/12px radii.
+- **`SEED` in the persistent bar.** DESIGN.md's own example reads "SEED ABC123 · LAYER 3 OF 8"
+  beside "ZAIBATSU CONSOLE". Tried it verbatim first: at the real 360px console width, with mono
+  type at `.16em` tracking, the two together overflow and `text-overflow: ellipsis` truncates the
+  *layer* figure — the more useful of the two — down to "LAYER …". Dropped the seed from the
+  visible bar rather than ship a truncated one; `view.__seed` is still attached to the standalone
+  view (recorded below, in failed hypotheses, since it was actually tried and reverted).
+- **A proportional threat-integrity meter.** DESIGN.md's meter component implies a fill
+  proportional to a maximum. `View.threat` carries only `{id, integrity, armour}` — no starting
+  value — so a proportion cannot be computed without guessing a denominator; the *previous*
+  iteration's meter here was already a silent no-op for exactly this reason (its ratio was
+  `integrity / integrity`, always 100%, never actually reflecting damage taken). Rendered a
+  `chip.world` stating the raw integrity number instead of shipping a bar that cannot move.
+- **A portrait on the `node` (offer) component.** DESIGN.md's own node example carries no
+  portrait, only name/tag/terms — so none was added; only `card` (the roster) carries one.
+- **The old `.grain` noise overlay.** Not in DESIGN.md — its ground is a radial wash with no
+  texture — so it was dropped along with the all-monospace body font it sat on.
+
 A third human playtest found that a layer's three targets could name the same construct twice —
 `constructFor` drew each tier's construct independently from the five, so e.g. `HUNTER — soft` and
 `HUNTER — hard` at the same layer were a real, common occurrence: the same machine standing as two
@@ -184,6 +254,11 @@ matrix is now lethal: every mutant killed, every criterion kills.
   outcome is a discrete threshold compounded across eight layers, not a smooth function of reach,
   so single-unit reach changes are far more destructive than similarly-sized power changes,
   iteration 2.
+
+- [presentation] Showing DESIGN.md's persistent-bar example verbatim ("ZAIBATSU CONSOLE" left,
+  "SEED nnnnnn · LAYER n OF m" right) at the real 360px test width — the combined string overflows
+  and `text-overflow: ellipsis` silently truncates the layer count, the more useful of the two
+  figures; dropped the seed from the bar rather than ship a truncated readout, iteration 3.
 
 ## disputes
 
