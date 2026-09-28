@@ -4,10 +4,27 @@ Three approaches to the same game, kept side by side so they can be compared rat
 argued about. This file is the ledger. Fill a column when an approach reaches a playable,
 checked build.
 
-**On money.** Claude cannot see its own token usage or billing, so no figure here is a
-dollar amount. Session spend comes from `/cost` in Claude Code; `rtk gain` and
-`rtk gain --history` report the proxy's token savings per command. What is recorded below is
-the part that can be counted from the repository itself.
+**On vocabulary.** The criteria were handed on without `ephemeral`'s words, so that they would not
+hand on its design with them, and each later arm named the game's parts for itself. The sections
+below use each arm's own terms. They map like this:
+
+| what it is | ephemeral | traditional | goal-driven |
+|---|---|---|---|
+| a card: a person you call, spent for the rest of the node | contact | operative | contact |
+| what you fight at a node; the last one, at layer 8, is the core | construct | sentinel | construct |
+| its damage reduction | armour | guard | armour |
+| the free attack, once per turn, that never runs out | breach | press | free action |
+| the meter that rises every turn and ends the run when full — the *pressure mechanic* | trace | heat | pressure |
+| the most damage the team could bring to a node, shown before choosing it | reach | ceiling | reach |
+
+Identifiers follow the same split. `K1`–`K19` are `ephemeral`'s conformance checks and `FR`, `NFR`
+and `I` its requirements and invariants, all in `ephemeral/docs/NULLRUN-SPEC.md`. `A1`–`A17` are
+the criteria the other two arms inherited from them. Lowercase names in `code` (`hunter`, `sweep`,
+`wren`) are individual cards.
+
+**On money.** No figure here is a dollar amount. Spend per session is visible only to the person
+running it and was not recorded. Everything below is counted from the repository and from Claude
+Code's session transcripts.
 
 **On tokens.** Claude Code writes a transcript per session, and a second transcript for every
 subagent that session dispatches, under `subagents/`. Both carry per-message usage. Each arm was
@@ -20,16 +37,20 @@ onto the three arms by date. Measured 2026-09-17, after the design import:
 | traditional | 18 | 657,496 | 314,835 | **972,331** | **306.5M** |
 | goal-driven | 32 | 1,366,332 | 1,217,931 | **2,584,263** | **892.1M** |
 
-**`goal-driven` cost about 3× either of the others.** Its subagents alone — 396M tokens, almost
-all of it `sonnet` — exceed the entire lifetime of `ephemeral`. Nearly half of everything it
-produced was written by an agent other than the one holding the conversation.
+**`goal-driven` used about 3× the tokens of either of the others** — tokens, not dollars, for the
+reasons in the cautions below. Its subagents alone — 396M tokens, almost all of it `sonnet` —
+exceed the entire lifetime of `ephemeral`. Nearly half of everything it produced was written by an
+agent other than the one holding the conversation.
 
-Two cautions on reading the table, neither of which changes where `goal-driven` sits:
+Three cautions on reading the table, none of which changes where `goal-driven` sits:
 
 - **Cache reads are roughly 97% of every total** and are billed at a fraction of fresh input, so
   the "all tokens" column is not proportional to spend. It mostly measures conversation length
-  multiplied by turns. The `output` column is the closer proxy for work produced. It puts `goal-driven` just as far
-  ahead — 1.09M, 0.97M, 2.58M — though it swaps the other two.
+  multiplied by turns. The `output` column is the closer proxy for work produced. It puts
+  `goal-driven` just as far ahead — 1.09M, 0.97M, 2.58M — though it swaps the other two.
+- **The model mix differs.** `ephemeral` ran on `opus` alone; nearly all of `goal-driven`'s
+  subagent tokens are `sonnet`, which is billed well below `opus`. The gap in spend is likely
+  smaller than the gap in tokens.
 - **A session is not exactly an arm.** The `goal-driven` session also produced this ledger's
   entries for all three arms, the whole-branch reviews, and the token accounting you are reading.
 
@@ -39,15 +60,10 @@ genuinely absent from the main transcript, which is where I looked. The subagent
 one directory down. So the arm that had most reason to look expensive was, for a while, recorded as
 the cheapest of the three. It is the dearest by a wide margin.
 
-**And it bears on the headline.** `goal-driven` reached green in one iteration of a budget of
-forty. Read alone, that says the method is fast. Read against 892.1M tokens and thirty-two dispatched
+**And it bears on the headline.** `goal-driven` reached green in one iteration of a budget of forty.
+Read alone, that says the method is fast. Read against 892.1M tokens and thirty-two dispatched
 agents, it says the single iteration was cheap and everything around it — ten tasks of scaffolding,
 fifty-three recorded decisions, four rounds of human-driven repair — was not.
-
-The authoritative per-session spend is `/cost` in Claude Code, which only the person running it can
-see. `rtk gain --project` reports 1,089 proxied commands for this repository, 407.2K input and
-325.2K output through the proxy, 82.7K saved (20.3%) — the proxy's accounting of what it filtered,
-not a session total.
 
 ---
 
@@ -72,8 +88,8 @@ Measured 2026-09-10, at `spec/0.9.5`. Spec 0.9.6 followed on 2026-09-11 and took
 
 ### What it cost in tokens
 
-Session `fe23c29a`, 2026-09-05 to 09-10. No subagents: every token here was spent in the
-conversation itself.
+One session, 2026-09-05 to 09-10. No subagents: every token here was spent in the conversation
+itself.
 
 | | |
 |---|---|
@@ -138,7 +154,7 @@ Measured 2026-09-11, at `main`.
 
 ### What it cost in tokens
 
-Session `dbc9043d`, 2026-09-10 to 09-11, plus 18 subagent transcripts — a fresh implementer and a
+One session, 2026-09-10 to 09-11, plus 18 subagent transcripts — a fresh implementer and a
 fresh reviewer per task.
 
 | | main thread | subagents | total |
@@ -205,7 +221,8 @@ The art is a wash, as it should be — it is the same art. The rest is a **6.7×
 the same game against the same seventeen criteria, and it is almost entirely React and the
 bundler's runtime. That is the price of the tooling, and it is worth stating plainly because
 nothing else in this comparison shows it: the traditional arm's source is more readable, more
-testable and far better covered, and its shipped artifact, art aside, is nearly seven times the size.
+testable and far better covered, and its shipped artifact, art aside, is nearly seven times the
+size.
 
 Folding it to one file also took three tries, each a real property of the tooling rather than a
 slip. `String.replace` expands `$&` and `` $` `` in a string replacement, and a minified React
@@ -336,8 +353,8 @@ written twice, and nothing in the bar requires the two copies to agree.
 
 ### What it cost in tokens
 
-Sessions `3d5fdda7` (2026-09-11 to 09-17) and `2f74a99e` (09-17, the design iteration), plus 32
-subagent transcripts.
+Two sessions — 2026-09-11 to 09-17, and the design iteration on 09-17 — plus 32 subagent
+transcripts.
 
 | | main thread | subagents | total |
 |---|---|---|---|
@@ -486,11 +503,11 @@ it: those inherited checks contained a structurally dead clause the previous arm
 documented as dead, plus roughly forty further defects — what was handed over was a starting
 position, not a finished bar.
 
-And the scaffolding was built by the *traditional* process: a design, a plan, task-by-task
-execution with review. Only the single loop iteration is goal-driven. **The method under test ran
-for one iteration and produced 1,027 lines — 695 artifact, 332 oracle, before any repair; the apparatus built to judge it took ten tasks, 53
-recorded decisions and 1,688 lines of checks.** Those two costs are not comparable and must not be
-added together.
+And the scaffolding was built by the *traditional* process: a design, a plan, task-by-task execution
+with review. Only the single loop iteration is goal-driven. **The method under test ran for one
+iteration and produced 1,027 lines — 695 artifact, 332 oracle, before any repair; the apparatus
+built to judge it took ten tasks, 53 recorded decisions and 1,688 lines of checks.** Those two costs
+are not comparable and must not be added together.
 
 ---
 
@@ -499,12 +516,12 @@ added together.
 For the comparison to mean anything, the approaches need the same target and the same
 definition of done. All three have now run; these are the terms they ran under:
 
-1. **What counts as finished.** `ephemeral` uses §K, nineteen checks including viability. The
-   other two inherited A1–A17 from it. Nineteen became seventeen by merging, not by dropping: K1
-   and K7 fold into A1, K3 and K4 into A3, and every other check maps to one criterion, restated
-   without the first arm's vocabulary (table in `traditional/docs/superpowers/specs/`). An approach with a weaker
-   bar would look cheaper for the wrong reason — and `goal-driven` inherited the *checks* as well, not just the criteria, which
-   is the one place the three are not on equal footing.
+1. **What counts as finished.** `ephemeral` uses §K, nineteen checks including viability. The other
+   two inherited A1–A17 from it. Nineteen became seventeen by merging, not by dropping: K1 and K7
+   fold into A1, K3 and K4 into A3, and every other check maps to one criterion, restated without
+   the first arm's vocabulary (table in `traditional/docs/superpowers/specs/`). An approach with a
+   weaker bar would look cheaper for the wrong reason — and `goal-driven` inherited the *checks* as
+   well, not just the criteria, which is the one place the three are not on equal footing.
 2. **What is shared.** The art in `ephemeral/art/src/` is method-neutral and reusable;
    regenerating it would cost effort that has nothing to do with the approach being tested. The
    695-word design language is shared on the same grounds, imported from the Claude Design project
