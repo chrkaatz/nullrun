@@ -500,8 +500,10 @@ For the comparison to mean anything, the approaches need the same target and the
 definition of done. All three have now run; these are the terms they ran under:
 
 1. **What counts as finished.** `ephemeral` uses §K, nineteen checks including viability. The
-   other two inherited A1–A17 from it. An approach with a weaker bar would look cheaper for the
-   wrong reason — and `goal-driven` inherited the *checks* as well, not just the criteria, which
+   other two inherited A1–A17 from it. Nineteen became seventeen by merging, not by dropping: K1
+   and K7 fold into A1, K3 and K4 into A3, and every other check maps to one criterion, restated
+   without the first arm's vocabulary (table in `traditional/docs/superpowers/specs/`). An approach with a weaker
+   bar would look cheaper for the wrong reason — and `goal-driven` inherited the *checks* as well, not just the criteria, which
    is the one place the three are not on equal footing.
 2. **What is shared.** The art in `ephemeral/art/src/` is method-neutral and reusable;
    regenerating it would cost effort that has nothing to do with the approach being tested. The
