@@ -27,7 +27,7 @@ anything the moment the driver has an opinion.
 Dispatched verbatim, with `{{...}}` substituted:
 
 > You are iteration {{N}} of an unattended loop building NULLRUN in
-> `/Users/ckaatz/development/experiments/nullrun/goal-driven`.
+> `<repo>/goal-driven`.
 >
 > Read, in this order: `CLAUDE.md`, `docs/PRODUCT.md`, `docs/ORACLE.md`, `docs/STATE.md`.
 >

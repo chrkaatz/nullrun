@@ -24,12 +24,12 @@ onto the three arms by date. Measured 2026-09-17, after the design import:
 all of it `sonnet` — exceed the entire lifetime of `ephemeral`. Nearly half of everything it
 produced was written by an agent other than the one holding the conversation.
 
-Two cautions on reading the table, neither of which changes that ordering:
+Two cautions on reading the table, neither of which changes where `goal-driven` sits:
 
 - **Cache reads are roughly 97% of every total** and are billed at a fraction of fresh input, so
   the "all tokens" column is not proportional to spend. It mostly measures conversation length
-  multiplied by turns. The `output` column is the closer proxy for work produced, and it gives the
-  same ranking: 1.09M, 0.97M, 2.45M.
+  multiplied by turns. The `output` column is the closer proxy for work produced. It puts `goal-driven` just as far
+  ahead — 1.09M, 0.97M, 2.58M — though it swaps the other two.
 - **A session is not exactly an arm.** The `goal-driven` session also produced this ledger's
   entries for all three arms, the whole-branch reviews, and the token accounting you are reading.
 
@@ -40,7 +40,7 @@ one directory down. So the arm that had most reason to look expensive was, for a
 the cheapest of the three. It is the dearest by a wide margin.
 
 **And it bears on the headline.** `goal-driven` reached green in one iteration of a budget of
-forty. Read alone, that says the method is fast. Read against 847M tokens and thirty dispatched
+forty. Read alone, that says the method is fast. Read against 892.1M tokens and thirty-two dispatched
 agents, it says the single iteration was cheap and everything around it — ten tasks of scaffolding,
 fifty-three recorded decisions, four rounds of human-driven repair — was not.
 
@@ -56,7 +56,8 @@ not a session total.
 Method: `ephemeral/docs/NULLRUN-SPEC.md` is authoritative; the build is a disposable render of
 it. Rebuild rather than patch whenever an invariant, the turn contract, or two systems change.
 
-Measured 2026-09-10, at `spec/0.9.5`.
+Measured 2026-09-10, at `spec/0.9.5`. Spec 0.9.6 followed on 2026-09-11 and took the build to
+600 lines and 113 KB; the side-by-side tables in the later sections use that version.
 
 | | |
 |---|---|
@@ -194,17 +195,17 @@ same shape of thing and their sizes can be compared at all. Both embed the same 
 
 | | ephemeral | traditional |
 |---|---|---|
-| artifact | `nullrun.html`, 116 KB | `dist/nullrun.html`, 317 KB |
-| embedded art | 79 KB | 80 KB |
-| **everything else** | **37 KB** | **237 KB** |
+| artifact | `nullrun.html`, 113 KB | `dist/nullrun.html`, 317 KB |
+| embedded art | 78 KB | 78 KB |
+| **everything else** | **36 KB** | **240 KB** |
 | hand-written source | 600 lines, one file | 770 engine + 343 UI + 203 CSS |
 | to run it | open the file | `pnpm bundle`, then open the file |
 
-The art is a wash, as it should be — it is the same art. The rest is a **6.4× difference** for
+The art is a wash, as it should be — it is the same art. The rest is a **6.7× difference** for
 the same game against the same seventeen criteria, and it is almost entirely React and the
 bundler's runtime. That is the price of the tooling, and it is worth stating plainly because
 nothing else in this comparison shows it: the traditional arm's source is more readable, more
-testable and far better covered, and its shipped artifact is six times the size.
+testable and far better covered, and its shipped artifact, art aside, is nearly seven times the size.
 
 Folding it to one file also took three tries, each a real property of the tooling rather than a
 slip. `String.replace` expands `$&` and `` $` `` in a string replacement, and a minified React
@@ -325,7 +326,7 @@ iteration that applied an imported design language no check reads.
 
 | | ephemeral | traditional | goal-driven |
 |---|---|---|---|
-| artifact | 113 KB | 317 KB | 124 KB |
+| artifact | 113 KB | 317 KB | 123 KB |
 | hand-written source | 600 lines, one file | 770 engine + 343 UI + 203 CSS | 359 oracle + 968 artifact |
 | the rules exist | once | once | **twice** |
 
@@ -487,7 +488,7 @@ position, not a finished bar.
 
 And the scaffolding was built by the *traditional* process: a design, a plan, task-by-task
 execution with review. Only the single loop iteration is goal-driven. **The method under test ran
-for one iteration and produced 1,110 lines; the apparatus built to judge it took ten tasks, 53
+for one iteration and produced 1,027 lines — 695 artifact, 332 oracle, before any repair; the apparatus built to judge it took ten tasks, 53
 recorded decisions and 1,688 lines of checks.** Those two costs are not comparable and must not be
 added together.
 
@@ -506,7 +507,9 @@ definition of done. All three have now run; these are the terms they ran under:
    regenerating it would cost effort that has nothing to do with the approach being tested. The
    695-word design language is shared on the same grounds, imported from the Claude Design project
    the `ephemeral` spec came from.
-3. **What each method never saw.** Every arm shipped defects its own bar could not see, and every
-   one of them was found by opening the app: three display-truth defects in `traditional`, four in
-   `goal-driven` including one that made the game unplayable. That is the finding the three arms
-   agree on, and no method here got close to catching it.
+3. **What each method never saw.** Every arm shipped defects its own bar could not see, and some
+   of them only a person looking at the running game found: the takeable-node guarantee
+   `ephemeral` lost with `I2`, three display defects in `traditional`, four in `goal-driven`
+   including one that made the game unplayable. Other gaps were closed by unit tests or a
+   whole-branch review — `traditional`'s *What caught what* table shows which — but nothing else
+   in any arm caught what opening the app caught. That is the finding the three arms agree on.

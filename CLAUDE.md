@@ -7,9 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Three approaches to building the same game, kept side by side so they can be compared. The
 game is NULLRUN, a short turn-based deckbuilder; the experiment is the *method*, not the game.
 
-    ephemeral/     spec-driven, code disposable — complete, playable, at spec/0.9.5
-    traditional/   not started
-    goal-driven/   not started
+    ephemeral/     spec-driven, code disposable — complete, playable, at spec 0.9.6
+    traditional/   plan-driven, code durable — complete, playable
+    goal-driven/   check-driven, authority in the bar — complete, playable after four repairs
     COST.md        the ledger comparing them
 
 **Work inside one approach at a time.** Each carries its own guidance: `ephemeral/CLAUDE.md`

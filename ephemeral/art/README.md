@@ -1,5 +1,9 @@
 # Art source
 
+**Provenance.** Both sheets were generated with Google Gemini. The tiles here are cuts of them,
+resized and colour-matched by hand, and are shared by all three arms. AI-generated images may not
+be protected by copyright; the repository's MIT licence covers them only as far as any rights exist.
+
 Tiles cut from a single 1408×768 sheet (`Gemini_Generated_Image_bjz6vcbjz6vcbjz6.jpeg`).
 Kept here so the build can be regenerated without re-cutting the sheet by hand — the build
 embeds these as base64 data URIs and is the only artifact that ships.
